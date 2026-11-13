@@ -40,7 +40,7 @@ svg.cl{width:100%;max-width:230px;display:block;margin:6px auto;cursor:pointer}
 .hid{display:none}
 .w100{flex-basis:100%}#nav{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}#nav button{white-space:nowrap;flex:none}#fpbar{display:flex;gap:8px;align-items:center;background:var(--bg);border:1px solid var(--acc2);border-radius:8px;padding:4px 10px}#fpbar input{width:70px;text-align:center;font-weight:bold}.cur{display:flex;gap:6px;align-items:center}.cur input{text-align:center}.hint{font-size:11px;color:var(--mut)}</style></head><body>
 <header><h1>⚔ Fabula Ultima</h1>
-<button class="tab" data-act="tab" data-v="sheet">Scheda</button>
+<button class="tab" data-act="tab" data-v="home">🏠 Personaggi</button><button class="tab" data-act="tab" data-v="sheet">Scheda</button>
 <button class="tab" data-act="tab" data-v="clocks">Clock</button><div id="nav" class="w100"></div><div id="fpbar" class="w100"></div></header>
 <main id="app"></main>
 <script>
@@ -59,9 +59,10 @@ const def=()=>({c:{nome:'',pron:'',ident:'',tema:'',orig:'',liv:5,px:0,fp:3,zeni
  a:{dex:{b:8,c:8},ins:{b:8,c:8},mig:{b:8,c:8},wlp:{b:8,c:8}},pf:{c:0,m:0},pm:{c:0,m:0},pi:{c:6,m:6},ini:0,dif:0,mdif:0,
  st:{},bonds:Array.from({length:6},()=>({n:'',e:[0,0,0]})),classi:[],armi:[],inc:[],zaino:[],
  eq:{arm:'',m2:'',acc:'',acc2:''},note:'',obj:''},clocks:[]});
-let S=def(),tab='sheet',sec=0;
-try{const j=JSON.parse(localStorage.getItem(K));if(j&&j.c)S=j}catch(e){}
-const save=()=>{try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}};
+let S={chars:[],clocks:[],cur:null,c:null},tab='home',sec=0;
+try{const j=JSON.parse(localStorage.getItem('fu-app-v3'));if(j&&j.chars)S=Object.assign(S,j);else{const o=JSON.parse(localStorage.getItem(K));if(o&&o.c){S.chars=[o.c];S.clocks=o.clocks||[]}}}catch(e){}
+S.c=S.chars[S.cur]||null;
+const save=()=>{try{localStorage.setItem('fu-app-v3',JSON.stringify({chars:S.chars,clocks:S.clocks,cur:S.cur}))}catch(e){}};
 const esc=s=>String(s??'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
 const get=p=>p.split('.').reduce((o,k)=>o?.[k],S);
 const put=(p,v)=>{const k=p.split('.'),l=k.pop();k.reduce((o,x)=>o[x],S)[l]=v};
@@ -81,27 +82,32 @@ const SECS=[
 ()=>`<div class="card"><h2>Attributi</h2><div class="g">${ATT.map(([k,n])=>`<div class="stat"><label>${n}</label><div class="row" style="justify-content:center"><div><div class="hint">Base</div><select data-p="c.a.${k}.b" data-n data-rc>${dieOpt(S.c.a[k].b)}</select></div><div><div class="hint">Attuale</div><select data-p="c.a.${k}.c" data-n>${dieOpt(S.c.a[k].c)}</select></div></div></div>`).join('')}</div></div><div class="card"><h2>Effetti di Stato</h2><p class="mut">Attivando uno stato l'attributo corrispondente scende di una taglia; puoi comunque correggere a mano il dado attuale.</p>${ST.map(([k,n])=>`<label class="pill"><input type="checkbox" data-p="c.st.${k}" data-rc ${S.c.st[k]?'checked':''}> ${n}</label>`).join('')}</div>`,
 ()=>`<div class="card"><h2>Punti Ferita · Mente · Inventario</h2><div class="g">${res('pf','Punti Ferita')}${res('pm','Punti Mente')}${res('pi','Punti Inventario')}</div></div>`,
 ()=>`<div class="card"><h2>Livello</h2><div class="g">${I('c.liv','Livello personaggio','number')}${I('c.px','Punti Esperienza','number')}</div></div>${listHtml('classi')}`,
-()=>`${listHtml('inc')}<div class="card"><h2>Obiettivi e note</h2><div class="g2">${T('c.obj','Obiettivi e ideali')}${T('c.note','Note')}</div></div><div class="card"><button class="x" data-act="reset">Azzera scheda e clock</button></div>`];
+()=>`${listHtml('inc')}<div class="card"><h2>Obiettivi e note</h2><div class="g2">${T('c.obj','Obiettivi e ideali')}${T('c.note','Note')}</div></div><div class="card"><button class="x" data-act="reset">Azzera questa scheda</button></div>`];
 function arc(i,n){const p=a=>[100+90*Math.cos(a),100+90*Math.sin(a)],a0=-Math.PI/2+2*Math.PI*i/n,a1=-Math.PI/2+2*Math.PI*(i+1)/n,[x,y]=p(a0),[u,v]=p(a1);return `M100 100L${x} ${y}A90 90 0 0 1 ${u} ${v}Z`}
-function clocks(){return `<div class="card"><div class="row"><button data-act="newclock">+ Nuovo clock</button><span class="mut">Tocca uno spicchio per riempire fino a lì; toccalo di nuovo per svuotarlo.</span></div></div><div class="clocks">`+S.clocks.map((k,i)=>{
+function clocks(){return `<div class="card"><div class="row"><button data-act="newclock">+ Nuovo clock</button><span class="mut">Tocca uno spicchio per riempire fino a lì; toccalo di nuovo per svuotarlo. I clock sono condivisi da tutti i personaggi.</span></div></div><div class="clocks">`+S.clocks.map((k,i)=>{
  let sv='';for(let j=0;j<k.n;j++){const a=-Math.PI/2+2*Math.PI*(j+.5)/k.n;sv+=`<path d="${arc(j,k.n)}" fill="${j<k.filled?k.col:'var(--empty)'}" stroke="var(--ink)" stroke-width="2" data-act="seg" data-i="${i}" data-j="${j}"/><text x="${100+60*Math.cos(a)}" y="${100+60*Math.sin(a)+4}" text-anchor="middle" font-size="11" fill="var(--ink)" pointer-events="none">${j+1}</text>`}
  return `<div class="card">${I(`clocks.${i}.name`,'Nome del clock')}<svg class="cl" viewBox="0 0 200 200">${sv}</svg><div style="text-align:center"><b>${k.filled}/${k.n}</b>${k.filled>=k.n?' <span class="crisi">Completo!</span>':''}</div>
  <div class="row" style="margin:8px 0"><div><label>Sezioni</label><div class="row"><button class="o" data-act="csec" data-i="${i}" data-d="-1">−</button><b>${k.n}</b><button class="o" data-act="csec" data-i="${i}" data-d="1">+</button></div></div><div><label>Colore</label><input type="color" data-p="clocks.${i}.col" value="${k.col}"></div></div>
  <details><summary>Etichette degli spicchi</summary>${k.lab.map((l,j)=>`<div class="row" style="margin-top:4px"><b>${j+1}</b><input type="text" data-p="clocks.${i}.lab.${j}" value="${esc(l)}" placeholder="Descrizione sezione ${j+1}" style="flex:1"></div>`).join('')}</details>
  <div class="row" style="margin-top:8px"><button class="o" data-act="cfill" data-i="${i}" data-d="1">Avanza</button><button class="o" data-act="cfill" data-i="${i}" data-d="-1">Arretra</button><button class="x" data-act="cdel" data-i="${i}">Elimina</button></div></div>`}).join('')+`</div>`}
-function render(){const A=document.getElementById('app');A.innerHTML=tab=='sheet'?SECS[sec]():clocks();
+function home(){const n=S.chars.length;return `<div class="card"><div class="row"><button data-act="new">+ Nuovo personaggio</button><span class="mut">${n} personagg${n==1?'io':'i'}</span></div></div><div class="clocks">`+S.chars.map((c,i)=>`<div class="card"><div data-act="open" data-i="${i}" style="cursor:pointer"><div class="big" style="font-size:20px">${esc(c.nome||'Senza nome')}</div><div class="mut">${esc([c.ident,c.tema,c.orig].filter(Boolean).join(' · '))||'—'}</div><p>Liv. <b>${c.liv}</b> · PF <b>${c.pf.c}/${c.pf.m}</b> · PM <b>${c.pm.c}/${c.pm.m}</b> · ⭐ <b>${c.fp}</b></p></div><div class="row"><button data-act="open" data-i="${i}">Apri</button><button class="o" data-act="dup" data-i="${i}">Duplica</button><button class="x" data-act="chdel" data-i="${i}">Elimina</button></div></div>`).join('')+`</div>`+(n?'':'<p class="mut">Nessun personaggio: creane uno per iniziare.</p>')}
+function render(){if(tab=='sheet'&&!S.c)tab='home';const A=document.getElementById('app');A.innerHTML=tab=='home'?home():tab=='sheet'?SECS[sec]():clocks();
  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.v==tab));
  document.getElementById('nav').innerHTML=tab=='sheet'?SEC.map((n,i)=>`<button class="tab ${i==sec?'on':''}" data-act="s" data-i="${i}">${i+1}. ${n}</button>`).join(''):'';
- document.getElementById('fpbar').innerHTML=`<b>⭐ Punti Fabula</b><button class="o" data-act="adj" data-p="c.fp" data-d="-1">−</button><input type="number" data-p="c.fp" value="${S.c.fp}"><button class="o" data-act="adj" data-p="c.fp" data-d="1">+</button>`;
+ document.getElementById('fpbar').style.display=S.c&&tab!='home'?'flex':'none';document.getElementById('fpbar').innerHTML=`<b>⭐ Punti Fabula · ${S.c?esc(S.c.nome||'Senza nome'):''}</b><button class="o" data-act="adj" data-p="c.fp" data-d="-1">−</button><input type="number" data-p="c.fp" value="${S.c?S.c.fp:0}"><button class="o" data-act="adj" data-p="c.fp" data-d="1">+</button>`;
  derive();save()}
-function derive(){const c=S.c,$=(i,v)=>{const e=document.getElementById(i);if(e)e.textContent=v};
+function derive(){if(!S.c)return;const c=S.c,$=(i,v)=>{const e=document.getElementById(i);if(e)e.textContent=v};
  $('cr',c.pf.m>0&&c.pf.c<=Math.floor(c.pf.m/2)?'⚠ IN CRISI':'');c.bonds.forEach((b,i)=>$('bf'+i,b.e.filter(x=>x).length))}
 document.addEventListener('input',e=>{const t=e.target,p=t.dataset.p;if(!p)return;
  put(p,t.type=='checkbox'?t.checked:(t.type=='number'||t.dataset.n!==undefined)?Number(t.value)||0:t.value);
  if(p=='c.fp'){document.querySelectorAll('input[data-p="c.fp"]').forEach(x=>{if(x!==t)x.value=t.value})}
  if(t.dataset.rc!==undefined){recompute();render();return}derive();save()});
 document.addEventListener('click',e=>{const t=e.target.closest('[data-act]');if(!t)return;e.preventDefault();const a=t.dataset.act,i=+t.dataset.i,d=+t.dataset.d,k=S.clocks[i];
- if(a=='tab')tab=t.dataset.v;
+ if(a=='tab')tab=(t.dataset.v=='sheet'&&!S.c)?'home':t.dataset.v;
+ else if(a=='new'){S.chars.push(def().c);S.cur=S.chars.length-1;S.c=S.chars[S.cur];tab='sheet';sec=0}
+ else if(a=='open'){S.cur=i;S.c=S.chars[i];tab='sheet';sec=0}
+ else if(a=='dup'){const n=JSON.parse(JSON.stringify(S.chars[i]));n.nome=(n.nome||'Senza nome')+' (copia)';S.chars.push(n)}
+ else if(a=='chdel'){if(!confirm('Eliminare questo personaggio?'))return;S.chars.splice(i,1);if(S.cur===i){S.cur=null;S.c=null}else if(S.cur>i)S.cur--}
  else if(a=='s'){sec=i;tab='sheet'}
  else if(a=='adj')put(t.dataset.p,(Number(get(t.dataset.p))||0)+d);
  else if(a=='sug'){const q=t.dataset.k;if(t.dataset.t)S.c[q].m=sug(q);else S.c[q]=sug(q)}
@@ -112,7 +118,7 @@ document.addEventListener('click',e=>{const t=e.target.closest('[data-act]');if(
  else if(a=='seg'){const j=+t.dataset.j;k.filled=k.filled==j+1?j:j+1}
  else if(a=='cfill')k.filled=Math.min(k.n,Math.max(0,k.filled+d));
  else if(a=='csec'){k.n=Math.min(12,Math.max(2,k.n+d));while(k.lab.length<k.n)k.lab.push('');k.lab.length=k.n;k.filled=Math.min(k.filled,k.n)}
- else if(a=='reset'){if(confirm('Cancellare tutti i dati?'))S=def();else return}
+ else if(a=='reset'){if(confirm('Azzerare questa scheda?')){S.chars[S.cur]=def().c;S.c=S.chars[S.cur]}else return}
  render()});
 render();
 </script></body></html>
