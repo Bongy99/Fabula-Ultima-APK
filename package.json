@@ -1,0 +1,13 @@
+{
+  "name": "fabula-ultima-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Scheda personaggio e clock per Fabula Ultima",
+  "dependencies": {
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/core": "^6.1.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.2"
+  }
+}
