@@ -38,10 +38,10 @@ button.on{background:var(--acc2);color:#222}
 svg.cl{width:100%;max-width:230px;display:block;margin:6px auto;cursor:pointer}
 .mut{color:var(--mut);font-size:12px}
 .hid{display:none}
-.w100{flex-basis:100%}#nav{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}#nav button{white-space:nowrap;flex:none}#fpbar{display:flex;gap:8px;align-items:center;background:var(--bg);border:1px solid var(--acc2);border-radius:8px;padding:4px 10px}#fpbar input{width:70px;text-align:center;font-weight:bold}.cur{display:flex;gap:6px;align-items:center}.cur input{text-align:center}.hint{font-size:11px;color:var(--mut)}</style></head><body>
+.w100{flex-basis:100%}#nav{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}#nav button{white-space:nowrap;flex:none}#fpbar{display:flex;gap:8px;align-items:center;background:var(--bg);border:1px solid var(--acc2);border-radius:8px;padding:4px 10px}#fpbar input{width:70px;text-align:center;font-weight:bold}.cur{display:flex;gap:6px;align-items:center}.cur input{text-align:center}.hint{font-size:11px;color:var(--mut)}.ms h3{font-variant:small-caps;letter-spacing:.06em;border-bottom:2px solid var(--acc);color:var(--acc);margin:16px 0 6px;font-size:17px}.mg{display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(105px,1fr))}.mb{border:1px solid var(--line);border-radius:6px;padding:6px;text-align:center}.mb span{display:block;font-size:10px;letter-spacing:.06em;color:var(--mut);text-transform:uppercase}.mb b{font-size:22px;color:var(--acc2)}.mb i{display:block;font-size:11px;color:var(--mut)}.mn{font-size:28px;font-weight:bold;font-variant:small-caps}.mw{padding:6px 0;border-bottom:1px dotted var(--line)}.mw p{margin:4px 0 0}.wn{font-variant:small-caps;font-size:16px}</style></head><body>
 <header><h1>⚔ Fabula Ultima</h1>
 <button class="tab" data-act="tab" data-v="home">🏠 Personaggi</button><button class="tab" data-act="tab" data-v="sheet">Scheda</button>
-<button class="tab" data-act="tab" data-v="clocks">Clock</button><div id="nav" class="w100"></div><div id="fpbar" class="w100"></div></header>
+<button class="tab" data-act="tab" data-v="riep">📖 Riepilogo</button><button class="tab" data-act="tab" data-v="clocks">Clock</button><div id="nav" class="w100"></div><div id="fpbar" class="w100"></div></header>
 <main id="app"></main>
 <script>
 const D=[6,8,10,12],K='fu-app-v2';
@@ -51,7 +51,7 @@ const EM=[['Ammirazione','Inferiorità'],['Lealtà','Sfiducia'],['Affetto','Odio
 const SEC=['Identità e Legami','Iniziativa e Difese','Zaino ed Equip.','Attributi e Stati','PF · PM · PI','Classi e Livelli','Abilità'];
 const LISTS={
  classi:{t:'Classi',a:{n:'',l:1,b:''},f:[['n','Classe','text'],['l','Livello classe','number'],['b','Benefici e abilità di classe','area']]},
- armi:{t:'Armi (mano principale / secondaria)',a:{n:'',pr:'',d:'',t:'',m:'',q:''},f:[['n','Nome','text'],['pr','Precisione','text'],['d','Danno','text'],['t','Tipo di danno','text'],['m','Mani / Distanza','text'],['q','Qualità','text']]},
+ armi:{t:'Armi (mano principale / secondaria)',a:{n:'',pr:'',d:'',t:'',m:'',q:'',desc:''},f:[['n','Nome','text'],['pr','Precisione','text'],['d','Danno','text'],['t','Tipo di danno','text'],['m','Mani / Distanza','text'],['q','Qualità','text'],['desc','Descrizione ed effetti','area']]},
  inc:{t:'Abilità e incantesimi',a:{n:'',pm:'',bs:'',dur:'',d:''},f:[['n','Nome','text'],['pm','Costo PM','text'],['bs','Bersaglio','text'],['dur','Durata','text'],['d','Effetto','area']]},
  zaino:{t:'Zaino',a:{n:'',c:'',q:''},f:[['n','Oggetto','text'],['c','Costo PI','text'],['q','Note','text']]}
 };
@@ -90,8 +90,20 @@ function clocks(){return `<div class="card"><div class="row"><button data-act="n
  <div class="row" style="margin:8px 0"><div><label>Sezioni</label><div class="row"><button class="o" data-act="csec" data-i="${i}" data-d="-1">−</button><b>${k.n}</b><button class="o" data-act="csec" data-i="${i}" data-d="1">+</button></div></div><div><label>Colore</label><input type="color" data-p="clocks.${i}.col" value="${k.col}"></div></div>
  <details><summary>Etichette degli spicchi</summary>${k.lab.map((l,j)=>`<div class="row" style="margin-top:4px"><b>${j+1}</b><input type="text" data-p="clocks.${i}.lab.${j}" value="${esc(l)}" placeholder="Descrizione sezione ${j+1}" style="flex:1"></div>`).join('')}</details>
  <div class="row" style="margin-top:8px"><button class="o" data-act="cfill" data-i="${i}" data-d="1">Avanza</button><button class="o" data-act="cfill" data-i="${i}" data-d="-1">Arretra</button><button class="x" data-act="cdel" data-i="${i}">Elimina</button></div></div>`}).join('')+`</div>`}
+const AB={dex:'DES',ins:'INT',mig:'VIG',wlp:'VOL'},nl=x=>esc(x).replace(/\n/g,'<br>');
+function riep(){const c=S.c,box=(l,v,i)=>`<div class="mb"><span>${l}</span><b>${v}</b>${i?`<i>${i}</i>`:''}</div>`,st=ST.filter(([k])=>c.st[k]).map(x=>x[1]);
+ const arm=c.armi.filter(w=>w.n||w.desc),ab=c.inc.filter(w=>w.n||w.d),cl=c.classi.filter(w=>w.n);
+ return `<div class="card ms"><div class="mn">${esc(c.nome||'Senza nome')}</div><div>${esc(c.pron)}</div><div class="mut">${esc([c.ident,c.tema,c.orig].filter(Boolean).join(' · '))}</div>
+ <div style="margin-top:4px">Livello <b>${c.liv}</b>${cl.length?' · '+cl.map(x=>esc(x.n)+' '+x.l).join(', '):''}</div>
+ <h3>Punti</h3><div class="mg">${box('Punti Ferita',c.pf.c+' / '+c.pf.m,'Crisi: '+Math.floor(c.pf.m/2))}${box('Punti Mente',c.pm.c+' / '+c.pm.m)}${box('Punti Inventario',c.pi.c+' / '+c.pi.m)}${box('Punti Fabula',c.fp)}${box('Zenit',c.zenit)}</div>
+ <h3>Attributi</h3><div class="mg">${ATT.map(([k,n])=>box(n+' ('+AB[k]+')','d'+c.a[k].c,c.a[k].c!=c.a[k].b?'base d'+c.a[k].b:'')).join('')}</div>
+ ${st.length?`<p><b>Stati:</b> ${st.join(', ')}</p>`:''}
+ <h3>Difese</h3><div class="mg">${box('Difesa',c.dif)}${box('Difesa Magica',c.mdif)}${box('Iniziativa',c.ini>0?'+'+c.ini:c.ini)}</div>
+ <h3>Armi</h3>${arm.map(w=>`<div class="mw"><b class="wn">${esc(w.n)}</b> ${w.pr?'【'+esc(w.pr)+'】 ':''}${w.d?'【'+esc(w.d)+'】 ':''}${esc([w.t,w.m].filter(Boolean).join(', '))}${w.q?`<div><i>${esc(w.q)}</i></div>`:''}${w.desc?`<p>${nl(w.desc)}</p>`:''}</div>`).join('')||'<p class="mut">Nessuna arma.</p>'}
+ <h3>Abilità e incantesimi</h3>${ab.map(w=>`<div class="mw"><b class="wn">${esc(w.n)}</b> ${w.pm?'【'+esc(w.pm)+' PM】 ':''}${esc([w.bs,w.dur].filter(Boolean).join(' · '))}${w.d?`<p>${nl(w.d)}</p>`:''}</div>`).join('')||'<p class="mut">Nessuna abilità.</p>'}
+ ${cl.some(x=>x.b)?'<h3>Benefici di classe</h3>'+cl.filter(x=>x.b).map(x=>`<div class="mw"><b class="wn">${esc(x.n)}</b> (liv. ${x.l})<p>${nl(x.b)}</p></div>`).join(''):''}</div>`}
 function home(){const n=S.chars.length;return `<div class="card"><div class="row"><button data-act="new">+ Nuovo personaggio</button><span class="mut">${n} personagg${n==1?'io':'i'}</span></div></div><div class="clocks">`+S.chars.map((c,i)=>`<div class="card"><div data-act="open" data-i="${i}" style="cursor:pointer"><div class="big" style="font-size:20px">${esc(c.nome||'Senza nome')}</div><div class="mut">${esc([c.ident,c.tema,c.orig].filter(Boolean).join(' · '))||'—'}</div><p>Liv. <b>${c.liv}</b> · PF <b>${c.pf.c}/${c.pf.m}</b> · PM <b>${c.pm.c}/${c.pm.m}</b> · ⭐ <b>${c.fp}</b></p></div><div class="row"><button data-act="open" data-i="${i}">Apri</button><button class="o" data-act="dup" data-i="${i}">Duplica</button><button class="x" data-act="chdel" data-i="${i}">Elimina</button></div></div>`).join('')+`</div>`+(n?'':'<p class="mut">Nessun personaggio: creane uno per iniziare.</p>')}
-function render(){if(tab=='sheet'&&!S.c)tab='home';const A=document.getElementById('app');A.innerHTML=tab=='home'?home():tab=='sheet'?SECS[sec]():clocks();
+function render(){if((tab=='sheet'||tab=='riep')&&!S.c)tab='home';const A=document.getElementById('app');A.innerHTML=tab=='home'?home():tab=='sheet'?SECS[sec]():tab=='riep'?riep():clocks();
  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.v==tab));
  document.getElementById('nav').innerHTML=tab=='sheet'?SEC.map((n,i)=>`<button class="tab ${i==sec?'on':''}" data-act="s" data-i="${i}">${i+1}. ${n}</button>`).join(''):'';
  document.getElementById('fpbar').style.display=S.c&&tab!='home'?'flex':'none';document.getElementById('fpbar').innerHTML=`<b>⭐ Punti Fabula · ${S.c?esc(S.c.nome||'Senza nome'):''}</b><button class="o" data-act="adj" data-p="c.fp" data-d="-1">−</button><input type="number" data-p="c.fp" value="${S.c?S.c.fp:0}"><button class="o" data-act="adj" data-p="c.fp" data-d="1">+</button>`;
@@ -103,7 +115,7 @@ document.addEventListener('input',e=>{const t=e.target,p=t.dataset.p;if(!p)retur
  if(p=='c.fp'){document.querySelectorAll('input[data-p="c.fp"]').forEach(x=>{if(x!==t)x.value=t.value})}
  if(t.dataset.rc!==undefined){recompute();render();return}derive();save()});
 document.addEventListener('click',e=>{const t=e.target.closest('[data-act]');if(!t)return;e.preventDefault();const a=t.dataset.act,i=+t.dataset.i,d=+t.dataset.d,k=S.clocks[i];
- if(a=='tab')tab=(t.dataset.v=='sheet'&&!S.c)?'home':t.dataset.v;
+ if(a=='tab')tab=(t.dataset.v!='home'&&t.dataset.v!='clocks'&&!S.c)?'home':t.dataset.v;
  else if(a=='new'){S.chars.push(def().c);S.cur=S.chars.length-1;S.c=S.chars[S.cur];tab='sheet';sec=0}
  else if(a=='open'){S.cur=i;S.c=S.chars[i];tab='sheet';sec=0}
  else if(a=='dup'){const n=JSON.parse(JSON.stringify(S.chars[i]));n.nome=(n.nome||'Senza nome')+' (copia)';S.chars.push(n)}
