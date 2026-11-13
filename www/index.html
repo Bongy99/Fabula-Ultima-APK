@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="it"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fabula Ultima – Scheda &amp; Clock</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#f6f1e7;--card:#fffdf8;--ink:#2b2433;--mut:#7a7083;--line:#d9cfbd;--acc:#7a3e9d;--acc2:#c8962e;--empty:#ece4d2;--bad:#b3362f}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17141d;--card:#221e2b;--ink:#ece6f2;--mut:#9a90a8;--line:#3a3347;--acc:#b98ae0;--acc2:#e0b455;--empty:#2e2839;--bad:#ef7b73}}
+:root[data-theme="dark"]{--bg:#17141d;--card:#221e2b;--ink:#ece6f2;--mut:#9a90a8;--line:#3a3347;--acc:#b98ae0;--acc2:#e0b455;--empty:#2e2839;--bad:#ef7b73}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 Georgia,'Times New Roman',serif}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--card);border-bottom:2px solid var(--acc);display:flex;gap:8px;align-items:center;padding:8px 12px;flex-wrap:wrap}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--card)}
+h1{font-size:18px;margin:0 auto 0 0;color:var(--acc)}
+h2{font-size:14px;text-transform:uppercase;letter-spacing:.08em;color:var(--acc);margin:0 0 8px;border-bottom:1px solid var(--line);padding-bottom:4px}
+main{max-width:1000px;margin:0 auto;padding:12px;display:grid;gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px}
+.g{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
+.g2{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+label{display:block;font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.04em}
+input,select,textarea,button{font:inherit;color:var(--ink)}
+input[type=text],input[type=number],select,textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 8px}
+textarea{min-height:60px;resize:vertical}
+button{background:var(--acc);color:var(--bg);border:0;border-radius:6px;padding:6px 12px;cursor:pointer}
+button.o{background:transparent;color:var(--acc);border:1px solid var(--acc)}
+button.x{background:transparent;color:var(--bad);border:1px solid var(--bad);padding:3px 8px}
+button.on{background:var(--acc2);color:#222}
+.tab{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.tab.on{background:var(--acc);color:var(--bg);border-color:var(--acc)}
+.row{display:flex;gap:8px;align-items:end;flex-wrap:wrap}
+.big{font-size:26px;font-weight:bold;color:var(--acc2);line-height:1.1}
+.stat{border:1px solid var(--line);border-radius:8px;padding:8px;text-align:center}
+.pill{display:inline-flex;gap:4px;align-items:center;border:1px solid var(--line);border-radius:99px;padding:3px 10px;margin:2px;font-size:13px}
+.crisi{color:var(--bad);font-weight:bold;font-size:12px}
+.item{border:1px dashed var(--line);border-radius:8px;padding:8px;margin-bottom:8px}
+.clocks{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+svg.cl{width:100%;max-width:230px;display:block;margin:6px auto;cursor:pointer}
+.mut{color:var(--mut);font-size:12px}
+.hid{display:none}
+</style></head><body>
+<header><h1>⚔ Fabula Ultima</h1>
+<button class="tab" data-act="tab" data-v="sheet">Scheda</button>
+<button class="tab" data-act="tab" data-v="clocks">Clock</button></header>
+<main id="app"></main>
+<script>
+const D=[6,8,10,12],K='fu-app-v1';
+const ST=[['lento','Lento','dex'],['confuso','Confuso','ins'],['furia','Furia','dex,ins'],['debole','Debole','mig'],['scosso','Scosso','wlp'],['avvelenato','Avvelenato','mig,wlp']];
+const ATT=[['dex','Destrezza'],['ins','Intuito'],['mig','Vigore'],['wlp','Volontà']];
+const EM=[['Ammirazione','Inferiorità'],['Lealtà','Sfiducia'],['Affetto','Odio']];
+const LISTS={
+ classi:{t:'Classi',a:{n:'',l:1,b:''},f:[['n','Classe','text'],['l','Livello','number'],['b','Benefici e abilità (nome, livello, effetto)','area']]},
+ armi:{t:'Armi',a:{n:'',pr:'',d:'',t:'',m:'',q:''},f:[['n','Nome','text'],['pr','Precisione (es. DEX+VIG)','text'],['d','Danno (es. TM+6)','text'],['t','Tipo di danno','text'],['m','Mani / Distanza','text'],['q','Qualità','text']]},
+ inc:{t:'Incantesimi e abilità attive',a:{n:'',pm:'',bs:'',dur:'',d:''},f:[['n','Nome','text'],['pm','Costo PM','text'],['bs','Bersaglio','text'],['dur','Durata','text'],['d','Effetto','area']]},
+ zaino:{t:'Zaino',a:{n:'',c:'',q:''},f:[['n','Oggetto','text'],['c','Costo PI','text'],['q','Note','text']]}
+};
+const def=()=>({c:{nome:'',pron:'',ident:'',tema:'',orig:'',liv:5,px:0,fp:3,zenit:0,
+ attr:{dex:8,ins:8,mig:8,wlp:8},r:{pfc:0,pmc:0,pic:6,pfb:0,pmb:0,pib:0,dm:0,dd:0,ini:0},
+ st:{},bonds:Array.from({length:6},()=>({n:'',e:[0,0,0]})),classi:[],armi:[],inc:[],zaino:[],
+ eq:{arm:'',mode:'dex',av:0,ab:0,m2:'',acc:'',acc2:''},note:'',obj:''},clocks:[]});
+let S=def(),tab='sheet';
+try{const j=localStorage.getItem(K);if(j)S=Object.assign(def(),JSON.parse(j))}catch(e){}
+const save=()=>{try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}};
+const esc=s=>String(s??'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+const get=p=>p.split('.').reduce((o,k)=>o?.[k],S);
+const put=(p,v)=>{const k=p.split('.'),l=k.pop();k.reduce((o,x)=>o[x],S)[l]=v};
+const I=(p,l,t='text',x='')=>`<div><label>${l}</label><input type="${t}" data-p="${p}" value="${esc(get(p))}" ${x}></div>`;
+const T=(p,l)=>`<div><label>${l}</label><textarea data-p="${p}">${esc(get(p))}</textarea></div>`;
+const dieOpt=(v)=>D.map(d=>`<option value="${d}" ${d==v?'selected':''}>d${d}</option>`).join('');
+
+function listHtml(k){const L=LISTS[k];return `<div class="card"><h2>${L.t}</h2>`+S.c[k].map((it,i)=>`<div class="item"><div class="g2">${L.f.map(([p,l,t])=>t=='area'?T(`c.${k}.${i}.${p}`,l):I(`c.${k}.${i}.${p}`,l,t)).join('')}</div><button class="x" data-act="del" data-k="${k}" data-i="${i}">Rimuovi</button></div>`).join('')+`<button class="o" data-act="add" data-k="${k}">+ Aggiungi</button></div>`}
+
+function sheet(){const c=S.c;return `
+<div class="card"><h2>Identità</h2><div class="g">${I('c.nome','Nome')}${I('c.pron','Pronomi')}${I('c.ident','Identità')}${I('c.tema','Tema')}${I('c.orig','Origine')}</div>
+<div class="g" style="margin-top:8px">${I('c.liv','Livello','number','min=5 max=60')}${I('c.px','Punti Esperienza','number')}${I('c.fp','Punti Fabula','number','min=0')}${I('c.zenit','Zenit','number')}</div></div>
+<div class="card"><h2>Attributi</h2><div class="g">${ATT.map(([k,n])=>`<div class="stat"><label>${n}</label><select data-p="c.attr.${k}" data-n>${dieOpt(c.attr[k])}</select><div class="mut">Attuale</div><div class="big" id="d-${k}"></div></div>`).join('')}</div>
+<p class="mut">Ogni stato alterato abbassa di una taglia il dado dell'attributo (minimo d6).</p>
+<div>${ST.map(([k,n])=>`<label class="pill"><input type="checkbox" data-p="c.st.${k}" ${c.st[k]?'checked':''}> ${n}</label>`).join('')}</div></div>
+<div class="card"><h2>Risorse e difese</h2><div class="g">
+<div class="stat"><label>Punti Ferita</label><div class="row"><input type="number" data-p="c.r.pfc" value="${c.r.pfc}"><b>/</b><b class="big" id="mpf"></b></div>${I('c.r.pfb','Bonus max','number')}<div class="crisi" id="cr"></div></div>
+<div class="stat"><label>Punti Mente</label><div class="row"><input type="number" data-p="c.r.pmc" value="${c.r.pmc}"><b>/</b><b class="big" id="mpm"></b></div>${I('c.r.pmb','Bonus max','number')}</div>
+<div class="stat"><label>Punti Inventario</label><div class="row"><input type="number" data-p="c.r.pic" value="${c.r.pic}"><b>/</b><b class="big" id="mpi"></b></div>${I('c.r.pib','Bonus max','number')}</div>
+<div class="stat"><label>Difesa</label><div class="big" id="dif"></div>${I('c.r.dd','Modificatore','number')}</div>
+<div class="stat"><label>Difesa Magica</label><div class="big" id="mdif"></div>${I('c.r.dm','Modificatore','number')}</div>
+<div class="stat"><label>Iniziativa</label>${I('c.r.ini','Modificatore','number')}</div></div>
+<p class="mut">PF = Livello + 5 × Vigore · PM = Livello + 5 × Volontà · PI = 6 (più bonus di classe). In Crisi quando i PF sono pari o inferiori alla metà.</p></div>
+<div class="card"><h2>Legami</h2>${c.bonds.map((b,i)=>`<div class="item"><div class="g2">${I(`c.bonds.${i}.n`,'Nome del legame')}${EM.map((e,j)=>`<div><label>${e[0]} / ${e[1]}</label><select data-p="c.bonds.${i}.e.${j}" data-n><option value="0" ${b.e[j]==0?'selected':''}>—</option><option value="1" ${b.e[j]==1?'selected':''}>${e[0]}</option><option value="2" ${b.e[j]==2?'selected':''}>${e[1]}</option></select></div>`).join('')}<div><label>Forza</label><div class="big" id="bf${i}"></div></div></div></div>`).join('')}</div>
+${listHtml('classi')}
+<div class="card"><h2>Equipaggiamento</h2><div class="g2">${I('c.eq.arm','Armatura')}
+<div><label>Difesa armatura</label><select data-p="c.eq.mode"><option value="dex" ${c.eq.mode=='dex'?'selected':''}>Destrezza + bonus</option><option value="fix" ${c.eq.mode=='fix'?'selected':''}>Valore fisso</option></select></div>
+${I('c.eq.av','Valore fisso','number')}${I('c.eq.ab','Bonus alla Destrezza','number')}${I('c.eq.m2','Mano secondaria / Scudo')}${I('c.eq.acc','Accessorio')}${I('c.eq.acc2','Accessorio 2')}</div></div>
+${listHtml('armi')}${listHtml('inc')}${listHtml('zaino')}
+<div class="card"><h2>Note</h2><div class="g2">${T('c.obj','Obiettivi e ideali')}${T('c.note','Note')}</div></div>
+<div class="card"><button class="x" data-act="reset">Azzera scheda e clock</button></div>`}
+
+function arc(i,n){const p=a=>[100+90*Math.cos(a),100+90*Math.sin(a)],a0=-Math.PI/2+2*Math.PI*i/n,a1=-Math.PI/2+2*Math.PI*(i+1)/n,[x,y]=p(a0),[u,v]=p(a1);return `M100 100L${x} ${y}A90 90 0 0 1 ${u} ${v}Z`}
+function clocks(){return `<div class="card"><div class="row"><button data-act="newclock">+ Nuovo clock</button><span class="mut">Tocca uno spicchio per riempire fino a lì; toccalo di nuovo per svuotarlo.</span></div></div><div class="clocks">`+S.clocks.map((k,i)=>{
+ let sv='';for(let j=0;j<k.n;j++){const a=-Math.PI/2+2*Math.PI*(j+.5)/k.n;sv+=`<path d="${arc(j,k.n)}" fill="${j<k.filled?k.col:'var(--empty)'}" stroke="var(--ink)" stroke-width="2" data-act="seg" data-i="${i}" data-j="${j}"/><text x="${100+60*Math.cos(a)}" y="${100+60*Math.sin(a)+4}" text-anchor="middle" font-size="11" fill="var(--ink)" pointer-events="none">${j+1}</text>`}
+ return `<div class="card">${I(`clocks.${i}.name`,'Nome del clock')}<svg class="cl" viewBox="0 0 200 200">${sv}</svg><div class="center" style="text-align:center"><b>${k.filled}/${k.n}</b>${k.filled>=k.n?' <span class="crisi">Completo!</span>':''}</div>
+ <div class="row" style="margin:8px 0"><div><label>Sezioni</label><div class="row"><button class="o" data-act="sec" data-i="${i}" data-d="-1">−</button><b>${k.n}</b><button class="o" data-act="sec" data-i="${i}" data-d="1">+</button></div></div><div><label>Colore</label><input type="color" data-p="clocks.${i}.col" value="${k.col}"></div></div>
+ <details><summary>Etichette degli spicchi</summary>${k.lab.map((l,j)=>`<div class="row" style="margin-top:4px"><b>${j+1}</b><input type="text" data-p="clocks.${i}.lab.${j}" value="${esc(l)}" placeholder="Descrizione sezione ${j+1}" style="flex:1"></div>`).join('')}</details>
+ <div class="row" style="margin-top:8px"><button class="o" data-act="cfill" data-i="${i}" data-d="1">Avanza</button><button class="o" data-act="cfill" data-i="${i}" data-d="-1">Arretra</button><button class="x" data-act="cdel" data-i="${i}">Elimina</button></div></div>`}).join('')+`</div>`}
+
+function render(){document.getElementById('app').innerHTML=tab=='sheet'?sheet():clocks();document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.v==tab));if(tab=='sheet')derive();save()}
+function derive(){if(tab!='sheet')return;const c=S.c,n=Number,cur={};
+ ATT.forEach(([k])=>{let d=0;ST.forEach(([s,,a])=>{if(c.st[s]&&a.split(',').includes(k))d++});cur[k]=D[Math.max(0,D.indexOf(n(c.attr[k]))-d)];document.getElementById('d-'+k).textContent='d'+cur[k]});
+ const mpf=n(c.liv)+5*c.attr.mig+n(c.r.pfb),mpm=n(c.liv)+5*c.attr.wlp+n(c.r.pmb),mpi=6+n(c.r.pib);
+ const $=(i,v)=>document.getElementById(i).textContent=v;
+ $('mpf',mpf);$('mpm',mpm);$('mpi',mpi);$('cr',n(c.r.pfc)<=Math.floor(mpf/2)?'⚠ IN CRISI':'');
+ $('dif',(c.eq.mode=='dex'?cur.dex+n(c.eq.ab):n(c.eq.av))+n(c.r.dd));$('mdif',cur.ins+n(c.r.dm));
+ c.bonds.forEach((b,i)=>$('bf'+i,b.e.filter(x=>x).length))}
+const nm=new Set(['number']);
+document.addEventListener('input',e=>{const t=e.target,p=t.dataset.p;if(!p)return;
+ let v=t.type=='checkbox'?t.checked:(t.type=='number'||t.dataset.n!==undefined)?Number(t.value)||0:t.value;
+ put(p,v);derive();save()});
+document.addEventListener('click',e=>{const t=e.target.closest('[data-act]');if(!t)return;const a=t.dataset.act,i=+t.dataset.i,d=+t.dataset.d,k=S.clocks[i];
+ if(a=='tab'){tab=t.dataset.v}
+ else if(a=='add'){S.c[t.dataset.k].push({...LISTS[t.dataset.k].a})}
+ else if(a=='del'){S.c[t.dataset.k].splice(i,1)}
+ else if(a=='newclock'){S.clocks.push({name:'Nuovo clock',n:6,filled:0,col:'#7a3e9d',lab:Array(6).fill('')})}
+ else if(a=='cdel'){if(confirm('Eliminare questo clock?'))S.clocks.splice(i,1);else return}
+ else if(a=='seg'){const j=+t.dataset.j;k.filled=k.filled==j+1?j:j+1}
+ else if(a=='cfill'){k.filled=Math.min(k.n,Math.max(0,k.filled+d))}
+ else if(a=='sec'){k.n=Math.min(12,Math.max(2,k.n+d));while(k.lab.length<k.n)k.lab.push('');k.lab.length=k.n;k.filled=Math.min(k.filled,k.n)}
+ else if(a=='reset'){if(confirm('Cancellare tutti i dati?'))S=def();else return}
+ render()});
+render();
+</script></body></html>
