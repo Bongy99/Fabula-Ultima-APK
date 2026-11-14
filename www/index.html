@@ -90,7 +90,7 @@ function mkParser(){
  const up=s=>s===s.toUpperCase()&&/[A-ZÀ-Ú]/.test(s);
  return{
   page(items){
-   const big=items.filter(t=>t.h>12.6&&/^[A-ZÀ-Ú’']{2,}$/.test(t.str.trim())).sort((a,b)=>b.y-a.y||a.x-b.x).map(t=>t.str.trim()).join(' ');
+   const big=items.filter(t=>t.h>12.6&&/^[A-ZÀ-Ú’' ]{2,}$/.test(t.str.trim())).sort((a,b)=>b.y-a.y||a.x-b.x).map(t=>t.str.trim()).join(' ');
    if(big){mode=0;let m;
     if(m=big.match(/^INCANTESIMI DA (.+)$/)){spC=cap(m[1].replace(/^(LA|LO|IL|L’) /,''));if(spC!='Png'){mode=2;sp[spC]=sp[spC]||[];spl=null}}
     else if(/^ABILIT[ÀA] EROICHE$/.test(big)){mode=3;grp=0;tbl=false}
@@ -126,8 +126,8 @@ function mkParser(){
      if(/^INCANTESIMO\s+PM/i.test(txt)||pg(txt)||txt.length<2)continue;
      const ic=L.i.some(t=>/^r{1,2}$/.test(t.str.trim())),it=L.i.filter(t=>!/^r{1,2}$/.test(t.str.trim()));
      let g=0;for(let k=1;k<it.length;k++)if(it[k].x-(it[k-1].x+(it[k-1].w||0))>=15)g++;
-     const pm=it.find(t=>t.x>=120&&t.x<180&&/^\d/.test(t.str.trim()));
-     if(it.length>=3&&it[0].x<90&&pm&&g>=2){const c=(a,b)=>it.filter(t=>t.x>=a&&t.x<b).map(t=>t.str.trim()).join(' ');
+     const pm=it.find(t=>t.x>=120&&t.x<180&&/\d/.test(t.str.trim()));
+     if(it.length>=3&&it[0].x<90&&pm&&g>=2){const c=(a,b)=>it.filter(t=>t.x>=a&&t.x<b&&!(a>=285&&/^\d{1,3}$/.test(t.str.trim()))).map(t=>t.str.trim()).join(' ');
       spl={n:c(0,120),pm:c(120,180),bs:c(180,285),dur:c(285,999),o:ic?1:0,d:''};sp[spC].push(spl)}
      else if(spl)spl.d+=(spl.d?' ':'')+txt;
      continue}
