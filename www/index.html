@@ -84,12 +84,19 @@ const sug=k=>{const c=S.c;return{pf:c.liv+5*c.a.mig.b,pm:c.liv+5*c.a.wlp.b,pi:6,
 function res(k,l){return `<div class="stat"><label>${l}</label><div class="cur"><input type="number" data-p="c.${k}.c" value="${S.c[k].c}"><b>/</b><input type="number" data-p="c.${k}.m" value="${S.c[k].m}"></div><div class="row" style="justify-content:center;margin-top:4px">${[-5,-1,1,5].map(d=>`<button class="o" data-act="adj" data-p="c.${k}.c" data-d="${d}">${d>0?'+':''}${d}</button>`).join('')}</div><div class="hint">attuale / massimo</div><div class="hint">suggerito: ${sug(k)} <a href="#" data-act="sug" data-k="${k}" data-t="m">usa</a></div>${k=='pf'?'<div class="crisi" id="cr"></div>':''}</div>`}
 function one(k,l,hint){return `<div class="stat"><label>${l}</label><input type="number" data-p="c.${k}" value="${S.c[k]}" style="text-align:center;font-size:22px"><div class="hint">${hint||''} ${sug(k)!=null?`suggerito: ${sug(k)} <a href="#" data-act="sug" data-k="${k}">usa</a>`:''}</div></div>`}
 function mkParser(){
- const cat={};let cls=null,sk=null,mode=0,lastTitle=false;
+ const cat={},sp={},H=[],AR=[],IN=[];let ar=null,ir=null,itb=false,gI='',cls=null,sk=null,mode=0,lastTitle=false,spC=null,spl=null,grp=0,tbl=false,pY=null,hr=null;
+ const pg=x=>/^\d{1,3}$/.test(x)||/\s-\s\d{4,}$/.test(x),cl=d=>d.replace(/\(\s*r+\s*\)/g,'(⚔)').replace(/【\s+/g,'【').replace(/\s+】/g,'】').replace(/\.\s*\d{1,3}$/,'.').trim();
  const cap=s=>s.toLowerCase().replace(/(^|[\s’'])(\p{L})/gu,(m,a,b)=>a+b.toUpperCase());
  const up=s=>s===s.toUpperCase()&&/[A-ZÀ-Ú]/.test(s);
  return{
   page(items){
-   if(items.some(t=>t.h>12.6&&/^[A-ZÀ-Ú’']{5,}$/.test(t.str.trim())))mode=0;
+   const big=items.filter(t=>t.h>12.6&&/^[A-ZÀ-Ú’']{2,}$/.test(t.str.trim())).sort((a,b)=>b.y-a.y||a.x-b.x).map(t=>t.str.trim()).join(' ');
+   if(big){mode=0;let m;
+    if(m=big.match(/^INCANTESIMI DA (.+)$/)){spC=cap(m[1].replace(/^(LA|LO|IL|L’) /,''));if(spC!='Png'){mode=2;sp[spC]=sp[spC]||[];spl=null}}
+    else if(/^ABILIT[ÀA] EROICHE$/.test(big)){mode=3;grp=0;tbl=false}
+    else if(big=='GLI ARCANA'){mode=4;ar=null}
+    else if(big=='TIPI DI TECNOLOGIA')mode=6}
+   pY=null;
    const its=items.filter(t=>t.str.trim()&&t.h>=8.5&&t.h<=12.6).sort((a,b)=>b.y-a.y),lines=[];
    for(const t of its){const L=lines[lines.length-1];if(L&&Math.abs(L.y-t.y)<=3)L.i.push(t);else lines.push({y:t.y,i:[t]})}
    for(const L of lines){
@@ -97,7 +104,43 @@ function mkParser(){
     const txt=L.i.map(t=>t.str.trim()).join(' ').replace(/\s+/g,' ').trim();
     const am=txt.match(/^ABILIT[ÀA]\s+(?:DELL[’']\s*|DELLA\s+|DELLO\s+|DEL\s+|DEI\s+|DEGLI\s+)([A-ZÀ-Ú’' ]+)$/);
     if(am){cls=cap(am[1].trim());cat[cls]=cat[cls]||[];mode=1;sk=null;lastTitle=false;continue}
-    if(/^(ANCHE\s*:|BENEFICI\s+GRATUITI|INCANTESIMI\s+DA|CAPITOLO\s+\d)/i.test(txt)){mode=0;continue}
+    if(mode==1&&/^(ANCHE\s*:|BENEFICI\s+GRATUITI|INCANTESIMI\s+DA|CAPITOLO\s+\d)/i.test(txt)){mode=0;continue}
+    if(mode==4){
+     if(/^c\s/.test(txt)||pg(txt))continue;
+     if(/^ARCANUM\s+(?:DEL|DELLA|DELLO|DELL’|DEI|DEGLI)\s*\S/.test(txt)){ar={n:cap(txt).replace(/ (Del|Della|Dello|Dei|Degli)\b/g,m=>m.toLowerCase()),r:'',d:''};AR.push(ar);continue}
+     if(!ar)continue;
+     if(/^Domini\s*:/.test(txt)){ar.r=txt.replace(/^Domini\s*:\s*/,'');continue}
+     ar.d+=(ar.d?' ':'')+txt;continue}
+    if(mode==6){if(txt=='INFUSIONI'){mode=5;itb=false;pY=null}continue}
+    if(mode==5){
+     if(/^INFUSIONE\s+EFFETTO/.test(txt)){itb=true;continue}
+     if(itb&&/^[A-ZÀ-Ú’' ]{5,}$/.test(txt)){mode=0;continue}
+     if(!itb||pg(txt))continue;
+     const gm=txt.match(/^Infusioni\s+(\S+)$/);
+     if(gm&&L.i.every(t=>t.x<100)){gI=gm[1];pY=null;continue}
+     if(pY==null||pY-L.y>=14){ir={n:'',r:gI,d:''};IN.push(ir)}
+     pY=L.y;
+     for(const t of L.i){const f=t.x<100?'n':'d';ir[f]+=(ir[f]?' ':'')+t.str.trim()}
+     continue}
+    if(mode==2){
+     if(/^INCANTESIMO\s+PM/i.test(txt)||pg(txt)||txt.length<2)continue;
+     const ic=L.i.some(t=>/^r{1,2}$/.test(t.str.trim())),it=L.i.filter(t=>!/^r{1,2}$/.test(t.str.trim()));
+     let g=0;for(let k=1;k<it.length;k++)if(it[k].x-(it[k-1].x+(it[k-1].w||0))>=15)g++;
+     const pm=it.find(t=>t.x>=120&&t.x<180&&/^\d/.test(t.str.trim()));
+     if(it.length>=3&&it[0].x<90&&pm&&g>=2){const c=(a,b)=>it.filter(t=>t.x>=a&&t.x<b).map(t=>t.str.trim()).join(' ');
+      spl={n:c(0,120),pm:c(120,180),bs:c(180,285),dur:c(285,999),o:ic?1:0,d:''};sp[spC].push(spl)}
+     else if(spl)spl.d+=(spl.d?' ':'')+txt;
+     continue}
+    if(mode==3){
+     if(/^LISTA DI ABILIT/i.test(txt)){tbl=true;continue}
+     if(tbl&&/^[A-ZÀ-Ú’' ]{5,}$/.test(txt)){mode=0;continue}
+     if(!tbl||pg(txt))continue;
+     if(/^Abilit[àa] [Ee]roiche\b/.test(txt)){grp=/padronanza/i.test(txt)?2:1;pY=null;continue}
+     if(!grp)continue;
+     if(pY==null||pY-L.y>=14){hr={n:'',r:'',d:''};H.push(hr)}
+     pY=L.y;
+     for(const t of L.i){const f=t.x<128?'n':(grp==2&&t.x<225)?'r':'d';hr[f]+=(hr[f]?' ':'')+t.str.trim()}
+     continue}
     const hd=L.i.filter(t=>t.h>11.8&&up(t.str.trim())),ti=L.i.filter(t=>t.h>10.5&&t.h<=11.8&&up(t.str.trim()));
     if(hd.length){
      const h=hd.map(t=>t.str.trim()).join(' '),m=h.match(/^ABILIT[ÀA]\s+(?:DELL[’']\s*|DELLA\s+|DELLO\s+|DEL\s+|DEI\s+|DEGLI\s+)(.+)$/);
@@ -111,13 +154,25 @@ function mkParser(){
      else{sk={n:name,max:mx?+mx[1]:1,d:''};cat[cls].push(sk)}
      lastTitle=true;continue}
     lastTitle=false;
-    if(sk&&!sk.d&&/^[^\w]{0,3}\s*(\d{1,2})\s*\)?$/.test(txt)){sk.max=+RegExp.$1;continue}
     if(!sk||txt.length<2||/^\d{1,3}$/.test(txt)||/\s-\s\d{4,}$/.test(txt))continue;
     sk.d+=(sk.d?' ':'')+txt}
   },
-  result(){for(const k in cat)cat[k].forEach(s=>{s.n=cap(s.n).replace(/\./g,'');s.d=s.d.replace(/\(\s*r+\s*\)/g,'(⚔)').replace(/【\s+/g,'【').replace(/\s+】/g,'】').replace(/\.\s*\d{1,3}$/,'.').trim()});return cat}}}
+  result(){for(const k in cat)cat[k].forEach(s=>{s.n=cap(s.n).replace(/\./g,'');s.d=cl(s.d)});return cat},
+  extra(){const o={};for(const k in sp)if(sp[k].length)o[k]=sp[k].map(x=>({...x,d:cl(x.d)}));return{spells:o,heroic:H.filter(h=>h.n).map(h=>({n:h.n,r:h.r,d:cl(h.d)})),arcana:AR.map(h=>({...h,d:cl(h.d)})),infusioni:IN.filter(h=>h.n).map(h=>({...h,d:cl(h.d)}))}}}}
 
 const CK='fu-cat-v1';let CAT={};try{CAT=JSON.parse(localStorage.getItem(CK))||{}}catch(e){}
+let CAT2={};try{CAT2=JSON.parse(localStorage.getItem('fu-cat2-v1'))||{}}catch(e){}
+let spSel='';
+const spFind=n=>{for(const k in(CAT2.spells||{})){const s=CAT2.spells[k].find(x=>x.n.toLowerCase()==String(n||'').trim().toLowerCase());if(s)return s}return null};
+const hFind=n=>(CAT2.heroic||[]).find(x=>x.n.toLowerCase()==String(n||'').trim().toLowerCase());
+function spCard(){const sp=CAT2.spells||{},ks=Object.keys(sp);
+ if(!ks.length)return `<div class="card"><h2>Dal manuale</h2><p class="mut">Nessun incantesimo o abilità eroica nel catalogo. In <b>Classi e Livelli</b> importa (o reimporta) il PDF del manuale per aggiungerli.</p></div>`;
+ if(!sp[spSel])spSel=ks[0];const own=new Set(S.c.inc.map(x=>x.n.toLowerCase()));
+ return `<div class="card"><h2>Incantesimi dal manuale</h2><select id="spc">${ks.map(k=>`<option ${k==spSel?'selected':''}>${esc(k)}</option>`).join('')}</select>${sp[spSel].map((s,j)=>{const o=own.has(s.n.toLowerCase());return `<div class="mw"><div class="row"><b class="wn" style="flex:1">${esc(s.n)}${s.o?' ⚔':''}</b><button class="${o?'o':''}" data-act="addsp" data-i="${j}" ${o?'disabled':''}>${o?'✓ Aggiunto':'+ Aggiungi'}</button></div><div class="hint">PM ${esc(s.pm)} · ${esc(s.bs)} · ${esc(s.dur)}</div><details><summary class="mut">Descrizione</summary><p>${nl(s.d)}</p></details></div>`}).join('')}</div>`}
+function hCard(){const H=CAT2.heroic||[];if(!H.length)return'';const c=S.c;c.eroiche=c.eroiche||[];const own=new Set(c.eroiche.map(x=>x.toLowerCase()));
+ return `<div class="card"><h2>Abilità eroiche</h2>${H.map((h,j)=>{const o=own.has(h.n.toLowerCase());return `<div class="mw"><div class="row"><b class="wn" style="flex:1">${esc(h.n)}</b><button class="${o?'o':''}" data-act="${o?'delh':'addh'}" data-i="${j}">${o?'✓ Rimuovi':'+ Aggiungi'}</button></div>${h.r?`<div class="hint">Requisiti: ${esc(h.r)}</div>`:''}<p>${nl(h.d)}</p></div>`}).join('')}</div>`}
+function xCard(k,t,lab){const H=CAT2[k]||[];if(!H.length)return'';const c=S.c;c.sel=c.sel||{};const own=new Set((c.sel[k]||[]).map(x=>x.toLowerCase()));
+ return `<div class="card"><h2>${t}</h2>${H.map((h,j)=>{const o=own.has(h.n.toLowerCase());return `<div class="mw"><div class="row"><b class="wn" style="flex:1">${esc(h.n)}</b><button class="${o?'o':''}" data-act="${o?'delx':'addx'}" data-k="${k}" data-i="${j}">${o?'✓ Rimuovi':'+ Aggiungi'}</button></div>${h.r?`<div class="hint">${lab}: ${esc(h.r)}</div>`:''}<details><summary class="mut">Descrizione</summary><p>${nl(h.d)}</p></details></div>`}).join('')}</div>`}
 async function importPdf(f){
  if(typeof pdfjsLib==='undefined'){alert('Il lettore PDF è disponibile solo nell\'app installata (APK o WebApp), non in questa anteprima.');return}
  const st=document.getElementById('imps');
@@ -125,19 +180,21 @@ async function importPdf(f){
   const pdf=await pdfjsLib.getDocument({data:new Uint8Array(await f.arrayBuffer())}).promise,P=mkParser();
   for(let n=1;n<=pdf.numPages;n++){if(st)st.textContent='Lettura pagina '+n+' di '+pdf.numPages+'…';
    const tc=await(await pdf.getPage(n)).getTextContent();
-   P.page(tc.items.filter(t=>t.str!==undefined&&t.transform).map(t=>({str:t.str,x:t.transform[4],y:t.transform[5],h:Math.hypot(t.transform[2],t.transform[3])})))}
-  const r=P.result(),nc=Object.keys(r).filter(k=>r[k].length).length,ns=Object.values(r).reduce((a,l)=>a+l.length,0);
-  if(!nc){alert('Nessuna classe trovata. Controlla che sia un manuale di Fabula Ultima nel formato originale.');render();return}
-  Object.assign(CAT,r);localStorage.setItem(CK,JSON.stringify(CAT));alert('Importate '+nc+' classi e '+ns+' abilità.')}
+   P.page(tc.items.filter(t=>t.str!==undefined&&t.transform).map(t=>({str:t.str,x:t.transform[4],y:t.transform[5],h:Math.hypot(t.transform[2],t.transform[3]),w:t.width||0})))}
+  const r=P.result(),x=P.extra(),nsp=Object.values(x.spells).reduce((a,l)=>a+l.length,0),nc=Object.keys(r).filter(k=>r[k].length).length,ns=Object.values(r).reduce((a,l)=>a+l.length,0);
+  if(!nc&&!nsp&&!x.heroic.length){alert('Nessuna classe trovata. Controlla che sia un manuale di Fabula Ultima nel formato originale.');render();return}
+  if(nc){Object.assign(CAT,r);localStorage.setItem(CK,JSON.stringify(CAT))}
+  CAT2.spells=Object.assign(CAT2.spells||{},x.spells);if(x.heroic.length)CAT2.heroic=x.heroic;if(x.arcana.length)CAT2.arcana=x.arcana;if(x.infusioni.length)CAT2.infusioni=x.infusioni;CAT2.v=2;localStorage.setItem('fu-cat2-v1',JSON.stringify(CAT2));
+  alert('Importate '+nc+' classi ('+ns+' abilità), '+nsp+' incantesimi, '+x.heroic.length+' abilità eroiche, '+x.arcana.length+' Arcana e '+x.infusioni.length+' infusioni.')}
  catch(x){alert('Errore nella lettura del PDF: '+(x&&x.message||x))}
  render()}
 const catOf=n=>{const k=Object.keys(CAT).find(x=>x.toLowerCase()==String(n||'').trim().toLowerCase());return k?CAT[k]:null};
 function clsSel(i,it){return `<div><label>Classe</label><select data-p="c.classi.${i}.n" data-rc><option value=""></option>${[...new Set([...Object.keys(CAT),it.n].filter(Boolean))].map(x=>`<option ${x==it.n?'selected':''}>${esc(x)}</option>`).join('')}</select></div>`}
 function skHtml(i){const cl=S.c.classi[i],L=catOf(cl.n);if(!L)return'';cl.sk=cl.sk||{};const own=L.filter(s=>cl.sk[s.n]>0).length;
  return `<details style="margin-top:8px"><summary>Abilità dal manuale (${own} acquisite)</summary>${L.map(s=>`<div class="mw"><div class="row"><b style="flex:1">${esc(s.n)}</b><label>LA <input type="number" min="0" max="${s.max}" style="width:64px" data-p="c.classi.${i}.sk.${esc(s.n)}" value="${cl.sk[s.n]||0}"> / ${s.max}</label></div><details><summary class="mut">Descrizione</summary><p>${nl(s.d)}</p></details></div>`).join('')}</details>`}
-function catCard(){const k=Object.keys(CAT),n=k.reduce((a,x)=>a+CAT[x].length,0);return `<div class="card"><h2>Manuali</h2><p class="mut">Importa il PDF del tuo manuale: le abilità di classe vengono lette sul dispositivo e restano salvate solo qui, senza essere condivise.</p><div class="row"><input type="file" id="pdf" accept="application/pdf" style="max-width:260px"><button class="x" data-act="clrcat">Cancella catalogo</button></div><div class="hint" id="imps">${n?k.length+' classi, '+n+' abilità nel catalogo':'Catalogo vuoto'}</div></div>`}
-document.addEventListener('change',e=>{if(e.target.id=='pdf'&&e.target.files[0])importPdf(e.target.files[0])});
-function listHtml(k){const L=LISTS[k];return `<div class="card"><h2>${L.t}</h2>`+S.c[k].map((it,i)=>`<div class="item"><div class="g2">${L.f.map(([p,l,t])=>k=='classi'&&p=='n'&&Object.keys(CAT).length?clsSel(i,it):t=='area'?T(`c.${k}.${i}.${p}`,l):I(`c.${k}.${i}.${p}`,l,t)).join('')}</div>${k=='classi'?skHtml(i):''}<button class="x" data-act="del" data-k="${k}" data-i="${i}">Rimuovi</button></div>`).join('')+`<button class="o" data-act="add" data-k="${k}">+ Aggiungi</button></div>`}
+function catCard(){const k=Object.keys(CAT),n=k.reduce((a,x)=>a+CAT[x].length,0);return `<div class="card"><h2>Manuali</h2><p class="mut">Importa il PDF del tuo manuale: le abilità di classe vengono lette sul dispositivo e restano salvate solo qui, senza essere condivise.</p><div class="row"><input type="file" id="pdf" accept="application/pdf" style="max-width:260px"><button class="x" data-act="clrcat">Cancella catalogo</button></div><div class="hint" id="imps">${n?k.length+' classi, '+n+' abilità nel catalogo':'Catalogo vuoto'}${(CAT2.spells&&Object.keys(CAT2.spells).length)?' · '+Object.values(CAT2.spells).reduce((a,l)=>a+l.length,0)+' incantesimi, '+(CAT2.heroic||[]).length+' abilità eroiche':''}</div>${n&&CAT2.v!=2?'<p class="crisi">Catalogo già presente: reimporta il PDF una volta per aggiungere le novità (incantesimi, abilità eroiche, Arcana e infusioni).</p>':''}</div>`}
+document.addEventListener('change',e=>{if(e.target.id=='spc'){spSel=e.target.value;render();return}if(e.target.id=='pdf'&&e.target.files[0])importPdf(e.target.files[0])});
+function listHtml(k){const L=LISTS[k];return `<div class="card"><h2>${L.t}</h2>`+S.c[k].map((it,i)=>`<div class="item"><div class="g2">${L.f.map(([p,l,t])=>k=='classi'&&p=='n'&&Object.keys(CAT).length?clsSel(i,it):t=='area'?T(`c.${k}.${i}.${p}`,l):I(`c.${k}.${i}.${p}`,l,t)).join('')}</div>${k=='classi'?skHtml(i):''}${k=='inc'&&!it.d&&spFind(it.n)?`<details><summary class="mut">Descrizione dal manuale</summary><p>${nl(spFind(it.n).d)}</p></details>`:''}<button class="x" data-act="del" data-k="${k}" data-i="${i}">Rimuovi</button></div>`).join('')+`<button class="o" data-act="add" data-k="${k}">+ Aggiungi</button></div>`}
 const SECS=[
 ()=>`<div class="card"><h2>Personaggio</h2><div class="g">${I('c.nome','Nome')}${I('c.pron','Pronomi')}</div></div><div class="card"><h2>Tratti</h2><div class="g">${I('c.ident','Identità')}${I('c.tema','Tema')}${I('c.orig','Origine')}</div></div><div class="card"><h2>Legami</h2>${S.c.bonds.map((b,i)=>`<div class="item"><div class="g2">${I(`c.bonds.${i}.n`,'Nome del legame')}${EM.map((e,j)=>`<div><label>${e[0]} / ${e[1]}</label><select data-p="c.bonds.${i}.e.${j}" data-n><option value="0" ${b.e[j]==0?'selected':''}>—</option><option value="1" ${b.e[j]==1?'selected':''}>${e[0]}</option><option value="2" ${b.e[j]==2?'selected':''}>${e[1]}</option></select></div>`).join('')}<div><label>Forza</label><div class="big" id="bf${i}"></div></div></div></div>`).join('')}</div>`,
 ()=>`<div class="card"><h2>Iniziativa e Difese</h2><div class="g">${one('ini','Iniziativa','modificatore')}${one('dif','Difesa','di solito Destrezza')}${one('mdif','Difesa Magica','di solito Intuito')}</div></div>`,
@@ -145,7 +202,7 @@ const SECS=[
 ()=>`<div class="card"><h2>Attributi</h2><div class="g">${ATT.map(([k,n])=>`<div class="stat"><label>${n}</label><div class="row" style="justify-content:center"><div><div class="hint">Base</div><select data-p="c.a.${k}.b" data-n data-rc>${dieOpt(S.c.a[k].b)}</select></div><div><div class="hint">Attuale</div><select data-p="c.a.${k}.c" data-n>${dieOpt(S.c.a[k].c)}</select></div></div></div>`).join('')}</div></div><div class="card"><h2>Effetti di Stato</h2><p class="mut">Attivando uno stato l'attributo corrispondente scende di una taglia; puoi comunque correggere a mano il dado attuale.</p>${ST.map(([k,n])=>`<label class="pill"><input type="checkbox" data-p="c.st.${k}" data-rc ${S.c.st[k]?'checked':''}> ${n}</label>`).join('')}</div>`,
 ()=>`<div class="card"><h2>Punti Ferita · Mente · Inventario</h2><div class="g">${res('pf','Punti Ferita')}${res('pm','Punti Mente')}${res('pi','Punti Inventario')}</div></div>`,
 ()=>`<div class="card"><h2>Livello</h2><div class="g">${I('c.liv','Livello personaggio','number')}${I('c.px','Punti Esperienza','number')}</div></div>${catCard()}${listHtml('classi')}`,
-()=>`${listHtml('inc')}<div class="card"><h2>Obiettivi e note</h2><div class="g2">${T('c.obj','Obiettivi e ideali')}${T('c.note','Note')}</div></div><div class="card"><button class="x" data-act="reset">Azzera questa scheda</button></div>`];
+()=>`${spCard()}${hCard()}${xCard('arcana','Arcana (Arcanista)','Domini')}${xCard('infusioni','Infusioni (Artefice)','Livello')}${listHtml('inc')}<div class="card"><h2>Obiettivi e note</h2><div class="g2">${T('c.obj','Obiettivi e ideali')}${T('c.note','Note')}</div></div><div class="card"><button class="x" data-act="reset">Azzera questa scheda</button></div>`];
 function arc(i,n){const p=a=>[100+90*Math.cos(a),100+90*Math.sin(a)],a0=-Math.PI/2+2*Math.PI*i/n,a1=-Math.PI/2+2*Math.PI*(i+1)/n,[x,y]=p(a0),[u,v]=p(a1);return `M100 100L${x} ${y}A90 90 0 0 1 ${u} ${v}Z`}
 function clocks(){return `<div class="card"><div class="row"><button data-act="newclock">+ Nuovo clock</button><span class="mut">Tocca uno spicchio per riempire fino a lì; toccalo di nuovo per svuotarlo. I clock sono condivisi da tutti i personaggi.</span></div></div><div class="clocks">`+S.clocks.map((k,i)=>{
  let sv='';for(let j=0;j<k.n;j++){const a=-Math.PI/2+2*Math.PI*(j+.5)/k.n;sv+=`<path d="${arc(j,k.n)}" fill="${j<k.filled?k.col:'var(--empty)'}" stroke="var(--ink)" stroke-width="2" data-act="seg" data-i="${i}" data-j="${j}"/><text x="${100+60*Math.cos(a)}" y="${100+60*Math.sin(a)+4}" text-anchor="middle" font-size="11" fill="var(--ink)" pointer-events="none">${j+1}</text>`}
@@ -165,7 +222,7 @@ function riep(){const c=S.c,box=(l,v,i)=>`<div class="mb"><span>${l}</span><b>${
  ${st.length?`<p><b>Stati:</b> ${st.join(', ')}</p>`:''}
  <h3>Difese</h3><div class="mg">${box('Difesa',c.dif)}${box('Difesa Magica',c.mdif)}${box('Iniziativa',c.ini>0?'+'+c.ini:c.ini)}</div>
  <h3>Armi</h3>${arm.map(w=>`<div class="mw"><b class="wn">${esc(w.n)}</b> ${w.pr?'【'+esc(w.pr)+'】 ':''}${w.d?'【'+esc(w.d)+'】 ':''}${esc([w.t,w.m].filter(Boolean).join(', '))}${w.q?`<div><i>${esc(w.q)}</i></div>`:''}${w.desc?`<p>${nl(w.desc)}</p>`:''}</div>`).join('')||'<p class="mut">Nessuna arma.</p>'}
- ${(()=>{const o=[];c.classi.forEach(x=>{const L=catOf(x.n);if(L&&x.sk)L.forEach(s=>{if(x.sk[s.n]>0)o.push([x.n,s,x.sk[s.n]])})});return o.length?'<h3>Abilità di classe</h3>'+o.map(([n,s,v])=>`<div class="mw"><b class="wn">${esc(s.n)}</b> (${esc(n)}) · LA ${v}/${s.max}<p>${nl(s.d)}</p></div>`).join(''):''})()}<h3>Abilità e incantesimi</h3>${ab.map(w=>`<div class="mw"><b class="wn">${esc(w.n)}</b> ${w.pm?'【'+esc(w.pm)+' PM】 ':''}${esc([w.bs,w.dur].filter(Boolean).join(' · '))}${w.d?`<p>${nl(w.d)}</p>`:''}</div>`).join('')||'<p class="mut">Nessuna abilità.</p>'}
+ ${(()=>{const o=[];c.classi.forEach(x=>{const L=catOf(x.n);if(L&&x.sk)L.forEach(s=>{if(x.sk[s.n]>0)o.push([x.n,s,x.sk[s.n]])})});return o.length?'<h3>Abilità di classe</h3>'+o.map(([n,s,v])=>`<div class="mw"><b class="wn">${esc(s.n)}</b> (${esc(n)}) · LA ${v}/${s.max}<p>${nl(s.d)}</p></div>`).join(''):''})()}${(S.c.eroiche||[]).length?'<h3>Abilità eroiche</h3>'+S.c.eroiche.map(n=>{const h=hFind(n)||{};return `<div class="mw"><b class="wn">${esc(n)}</b>${h.r?' · '+esc(h.r):''}${h.d?`<p>${nl(h.d)}</p>`:''}</div>`}).join(''):''}${[['arcana','Arcana'],['infusioni','Infusioni']].map(([k,t])=>{const L=(S.c.sel||{})[k]||[];return L.length?`<h3>${t}</h3>`+L.map(n=>{const h=(CAT2[k]||[]).find(x=>x.n==n)||{};return `<div class="mw"><b class="wn">${esc(n)}</b>${h.r?' · '+esc(h.r):''}${h.d?`<p>${nl(h.d)}</p>`:''}</div>`}).join(''):''}).join('')}<h3>Abilità e incantesimi</h3>${ab.map(w=>`<div class="mw"><b class="wn">${esc(w.n)}</b> ${w.pm?'【'+esc(w.pm)+' PM】 ':''}${esc([w.bs,w.dur].filter(Boolean).join(' · '))}${(w.d||(spFind(w.n)||{}).d)?`<p>${nl(w.d||spFind(w.n).d)}</p>`:''}</div>`).join('')||'<p class="mut">Nessuna abilità.</p>'}
  ${cl.some(x=>x.b)?'<h3>Benefici di classe</h3>'+cl.filter(x=>x.b).map(x=>`<div class="mw"><b class="wn">${esc(x.n)}</b> (liv. ${x.l})<p>${nl(x.b)}</p></div>`).join(''):''}</div>`}
 function doImport(rep){const el=document.getElementById('bk');try{const j=JSON.parse(el.value.trim());if(!j||!Array.isArray(j.chars))throw 0;
  const ch=j.chars.map(c=>Object.assign(JSON.parse(JSON.stringify(def().c)),c));
@@ -204,7 +261,12 @@ document.addEventListener('click',e=>{const t=e.target.closest('[data-act]');if(
  else if(a=='seg'){const j=+t.dataset.j;k.filled=k.filled==j+1?j:j+1}
  else if(a=='cfill')k.filled=Math.min(k.n,Math.max(0,k.filled+d));
  else if(a=='csec'){k.n=Math.min(12,Math.max(2,k.n+d));while(k.lab.length<k.n)k.lab.push('');k.lab.length=k.n;k.filled=Math.min(k.filled,k.n)}
- else if(a=='clrcat'){if(confirm('Cancellare il catalogo importato?')){CAT={};localStorage.removeItem(CK)}else return}
+ else if(a=='addsp'){const s=CAT2.spells[spSel][i];S.c.inc.push({n:s.n,pm:s.pm,bs:s.bs,dur:s.dur,d:''})}
+ else if(a=='addx'){const k=t.dataset.k;S.c.sel=S.c.sel||{};(S.c.sel[k]=S.c.sel[k]||[]).push(CAT2[k][i].n)}
+ else if(a=='delx'){const k=t.dataset.k,n=CAT2[k][i].n;S.c.sel[k]=(S.c.sel[k]||[]).filter(x=>x!=n)}
+ else if(a=='addh'){S.c.eroiche=S.c.eroiche||[];S.c.eroiche.push(CAT2.heroic[i].n)}
+ else if(a=='delh'){const n=CAT2.heroic[i].n;S.c.eroiche=(S.c.eroiche||[]).filter(x=>x!=n)}
+ else if(a=='clrcat'){if(confirm('Cancellare il catalogo importato?')){CAT={};CAT2={};localStorage.removeItem(CK);localStorage.removeItem('fu-cat2-v1')}else return}
  else if(a=='reset'){if(confirm('Azzerare questa scheda?')){S.chars[S.cur]=def().c;S.c=S.chars[S.cur]}else return}
  render()});
 render();
