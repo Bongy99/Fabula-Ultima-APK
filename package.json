@@ -5,7 +5,8 @@
   "description": "Scheda personaggio e clock per Fabula Ultima",
   "dependencies": {
     "@capacitor/android": "^6.1.2",
-    "@capacitor/core": "^6.1.2"
+    "@capacitor/core": "^6.1.2",
+    "pdfjs-dist": "3.11.174"
   },
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",
