@@ -2,6 +2,14 @@
 <html lang="it"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Fabula Ultima – Scheda &amp; Clock</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#30164f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Fabula Ultima">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
 --bg:#f6f1e7;--card:#fffdf8;--ink:#2b2433;--mut:#7a7083;--line:#d9cfbd;--acc:#7a3e9d;--acc2:#c8962e;--empty:#ece4d2;--bad:#b3362f}
@@ -133,4 +141,5 @@ document.addEventListener('click',e=>{const t=e.target.closest('[data-act]');if(
  else if(a=='reset'){if(confirm('Azzerare questa scheda?')){S.chars[S.cur]=def().c;S.c=S.chars[S.cur]}else return}
  render()});
 render();
+if('serviceWorker' in navigator&&location.protocol.startsWith('http')&&location.hostname!=='localhost')navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script></body></html>
