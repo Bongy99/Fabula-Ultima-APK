@@ -89,11 +89,15 @@ function mkParser(){
  const up=s=>s===s.toUpperCase()&&/[A-ZÀ-Ú]/.test(s);
  return{
   page(items){
+   if(items.some(t=>t.h>12.6&&/^[A-ZÀ-Ú’']{5,}$/.test(t.str.trim())))mode=0;
    const its=items.filter(t=>t.str.trim()&&t.h>=8.5&&t.h<=12.6).sort((a,b)=>b.y-a.y),lines=[];
    for(const t of its){const L=lines[lines.length-1];if(L&&Math.abs(L.y-t.y)<=3)L.i.push(t);else lines.push({y:t.y,i:[t]})}
    for(const L of lines){
     L.i.sort((a,b)=>a.x-b.x);
     const txt=L.i.map(t=>t.str.trim()).join(' ').replace(/\s+/g,' ').trim();
+    const am=txt.match(/^ABILIT[ÀA]\s+(?:DELL[’']\s*|DELLA\s+|DELLO\s+|DEL\s+|DEI\s+|DEGLI\s+)([A-ZÀ-Ú’' ]+)$/);
+    if(am){cls=cap(am[1].trim());cat[cls]=cat[cls]||[];mode=1;sk=null;lastTitle=false;continue}
+    if(/^(ANCHE\s*:|BENEFICI\s+GRATUITI|INCANTESIMI\s+DA|CAPITOLO\s+\d)/i.test(txt)){mode=0;continue}
     const hd=L.i.filter(t=>t.h>11.8&&up(t.str.trim())),ti=L.i.filter(t=>t.h>10.5&&t.h<=11.8&&up(t.str.trim()));
     if(hd.length){
      const h=hd.map(t=>t.str.trim()).join(' '),m=h.match(/^ABILIT[ÀA]\s+(?:DELL[’']\s*|DELLA\s+|DELLO\s+|DEL\s+|DEI\s+|DEGLI\s+)(.+)$/);
