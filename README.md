@@ -16,3 +16,14 @@ App Android (Capacitor) con scheda personaggio e clock di Fabula Ultima.
 Tutta l'app è in `www/index.html`. Modificalo, fai commit e l'APK si rigenera.
 
 I dati sono salvati sul dispositivo di ciascun giocatore.
+
+## WebApp per iPhone / iPad (GitHub Pages)
+1. Nel repository: **Settings → Pages → Source → GitHub Actions**
+   (con un account gratuito il repository deve essere **pubblico**).
+2. Al prossimo push (o da Actions → "Deploy WebApp" → Run workflow) l'app viene
+   pubblicata su `https://TUO-UTENTE.github.io/NOME-REPOSITORY/`.
+3. Gli amici aprono il link **con Safari**, toccano **Condividi → Aggiungi alla schermata Home**:
+   l'app si apre a schermo intero e funziona anche offline.
+
+Nota: i dati sono salvati nel dispositivo, e l'app installata sulla Home ha un archivio
+separato da quello di Safari. Conviene usare sempre e solo l'icona installata.
