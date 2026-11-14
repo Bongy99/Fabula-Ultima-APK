@@ -84,24 +84,108 @@ const sug=k=>{const c=S.c;return{pf:c.liv+5*c.a.mig.b,pm:c.liv+5*c.a.wlp.b,pi:6,
 function res(k,l){return `<div class="stat"><label>${l}</label><div class="cur"><input type="number" data-p="c.${k}.c" value="${S.c[k].c}"><b>/</b><input type="number" data-p="c.${k}.m" value="${S.c[k].m}"></div><div class="row" style="justify-content:center;margin-top:4px">${[-5,-1,1,5].map(d=>`<button class="o" data-act="adj" data-p="c.${k}.c" data-d="${d}">${d>0?'+':''}${d}</button>`).join('')}</div><div class="hint">attuale / massimo</div><div class="hint">suggerito: ${sug(k)} <a href="#" data-act="sug" data-k="${k}" data-t="m">usa</a></div>${k=='pf'?'<div class="crisi" id="cr"></div>':''}</div>`}
 function one(k,l,hint){return `<div class="stat"><label>${l}</label><input type="number" data-p="c.${k}" value="${S.c[k]}" style="text-align:center;font-size:22px"><div class="hint">${hint||''} ${sug(k)!=null?`suggerito: ${sug(k)} <a href="#" data-act="sug" data-k="${k}">usa</a>`:''}</div></div>`}
 function mkParser(){
- const cat={},sp={},H=[],AR=[],IN=[];let ar=null,ir=null,itb=false,gI='',cls=null,sk=null,mode=0,lastTitle=false,spC=null,spl=null,grp=0,tbl=false,pY=null,hr=null;
- const pg=x=>/^\d{1,3}$/.test(x)||/\s-\s\d{4,}$/.test(x),cl=d=>d.replace(/\(\s*r+\s*\)/g,'(⚔)').replace(/【\s+/g,'【').replace(/\s+】/g,'】').replace(/\.\s*\d{1,3}$/,'.').trim();
+ const cat={},sp={},H=[],HD=[],AR=[],IN=[],LS={};
+ let magOn=false,ar=null,ir=null,itb=false,gI='',cls=null,sk=null,mode=0,lastTitle=false,spC=null,spl=null,grp=0,tbl=false,pY=null,hr=null,hdet=false,hent=null,hpy=null,hreq=false,hlt=false,lcur=null,lmg=null,mgi=null;
+ const pg=x=>/^\d{1,3}$/.test(x)||/\s-\s\d{4,}$/.test(x);
+ const cl=d=>d.replace(/\(\s*r+\s*\)/g,'(⚔)').replace(/【\s+/g,'【').replace(/\s+】/g,'】').replace(/\s+([,.;:!?])/g,'$1').replace(/\(\s+/g,'(').replace(/\s+\)/g,')').replace(/\.\s*\d{1,3}$/,'.').replace(/[ \t]+\n/g,'\n').trim();
  const cap=s=>s.toLowerCase().replace(/(^|[\s’'])(\p{L})/gu,(m,a,b)=>a+b.toUpperCase());
+ const SMALL=/^(di|del|della|dello|dei|degli|delle|da|in|e|a|al|alla|con|per|su|il|lo|la|le|un|una|o|nel|nella)$/;
+ const titleIt=s=>s.toLowerCase().split(/\s+/).map((w,k)=>{let m=w.match(/^(d|l|dell|all|nell|sull|un)['’](.+)$/);if(m)return m[1]+'’'+m[2][0].toUpperCase()+m[2].slice(1);if(k>0&&SMALL.test(w))return w;return w.replace(/^(\p{L})/u,x=>x.toUpperCase())}).join(' ');
+ const nk=s=>s.toLowerCase().replace(/[^a-zà-ú0-9]/g,'');
  const up=s=>s===s.toUpperCase()&&/[A-ZÀ-Ú]/.test(s);
+ const T=t=>t.str.trim();
+ const lineTxt=L=>L.i.map((t,k)=>{let s=T(t);return(k==0&&s=='w')?'•':s}).filter(Boolean).join(' ').replace(/\s+/g,' ').trim();
+ const TH={'DANZA':['f1','danze','Danze (Danzatore)','Durata'],'SIMBOLO':['f1','simboli','Simboli (Simbolista)',''],'TONO':['f1','versi_toni','Toni dei versi (Cantore)',''],
+  'DONO':['f1','doni','Doni (Esper)','Evento'],'TERIOFORMA':['f1','terioforme','Terioforme (Mutante)','Suggerimenti per Genoclepsi'],
+  'ATTIVITÀ DA CAMPO':['f1','attivita','Attività da campo','Bersaglio'],'VOLUME':['f4','versi_volumi','Volumi dei versi (Cantore)',''],'CHIAVE':['f4','versi_chiavi','Chiavi dei versi (Cantore)',''],
+  'SORGENTI E INVOCAZIONI':['f3','invocazioni','Invocazioni (Invocatore)','Sorgente']};
+ const BIG=[[/^VERSI$/,7],[/^DANZE$/,7],[/^SIMBOLI$/,7],[/^DONI$/,7],[/^TERIOFORME$/,7],[/^ATTIVIT[ÀA] DA CAMPO$/,7],[/^SORGENTI E INVOCAZIONI$/,7],[/^MAGISEMI$/,8]];
+ const getL=c=>LS[c[1]]||(LS[c[1]]={t:c[2],lab:c[3],items:[],cur:null,grp:''});
+ const pmargin=(lines,fb)=>{const c={};lines.forEach(L=>{const f=L.i[0],n=L.i.reduce((a,t)=>a+T(t).length,0);if(n>=30&&f.x>=40&&f.x<130){const k=Math.round(f.x);c[k]=(c[k]||0)+1}});let b=null,bn=0;for(const k in c)if(c[k]>bn){bn=c[k];b=+k}return b==null?fb:b};
+ function addBody(it,L,prevY){const s=lineTxt(L);if(!s)return;const brk=prevY!=null&&prevY-L.y>16||/^•/.test(s);it.d+=(it.d?(brk?'\n':' '):'')+s}
+ function f1(seg,mg,L0,topY){
+  const left=[],right=[];
+  for(const L of seg){const f=L.i[0],s=lineTxt(L);if(!s||pg(s)||(f.str.trim()=='c'&&L.i.length>1&&f.x<mg+30))continue;(f.x>=mg+60?right:left).push(L)}
+  const hd=new Set();
+  left.forEach((L,k)=>{const f=L.i[0],n=L.i[1],pv=k>0?left[k-1].y:(topY!=null?topY:null),gap=pv==null?99:pv-L.y;
+   const lone=!n||(n.x-(f.x+(f.w||0))>=10);
+   if(f.b&&lone&&gap>=15&&f.x<mg+30)hd.add(L)});
+  const metas=new Map();
+  hd.forEach(L=>metas.set(L,L.i.slice(1).map(T).filter(Boolean).length?[{y:L.y,s:L.i.slice(1).map(T).filter(Boolean).join(' ')}]:[]));
+  for(const R of right){let best=null,bd=9.5;hd.forEach(L=>{const d=Math.abs(L.y-R.y);if(d<bd){bd=d;best=L}});if(best)metas.get(best).push({y:R.y,s:lineTxt(R)})}
+  let py=null;
+  for(const L of left){
+   if(hd.has(L)){const m=metas.get(L).sort((a,b)=>b.y-a.y).map(x=>x.s).join(' ');L0.cur={n:T(L.i[0]),r:m,d:''};L0.items.push(L0.cur);py=L.y;continue}
+   if(L0.cur){addBody(L0.cur,L,py);py=L.y}}
+ }
+ function f3(seg,mg,L0){
+  const names=[],descs=[];
+  for(const L of seg){const f=L.i[0],s=lineTxt(L);if(!s||pg(s))continue;
+   if(f.x<mg+30){const gm=s.match(/^(Sorgente\s.+)$/);if(gm&&f.b&&L.i.length==1){L0.grp=gm[1];continue}
+    if(f.b){names.push({y:L.y,n:T(f),g:L0.grp});const rest=L.i.filter(t=>t.x>=mg+55);if(rest.length)descs.push({y:L.y,s:rest.map(T).join(' '),g:L0.grp});continue}}
+   const rest=L.i.filter(t=>t.x>=mg+55);if(rest.length)descs.push({y:L.y,s:rest.map(T).join(' '),g:L0.grp})}
+  const bucket=names.map(n=>({n:n.n,g:n.g,y:n.y,ds:[]}));
+  for(const d of descs){let b=null,bd=1e9;bucket.forEach(n=>{if(n.g!=d.g)return;const x=Math.abs(n.y-d.y);if(x<bd){bd=x;b=n}});if(b)b.ds.push(d)}
+  bucket.forEach(b=>{b.ds.sort((a,c)=>c.y-a.y);L0.items.push({n:b.n,r:b.g.replace(/^Sorgente\s+/,'Sorgente: ').replace(/\s*\(tipo di danno:\s*/,' · danno ').replace(/\)$/,''),d:b.ds.map(x=>x.s).join(' ')})})
+ }
+ function f4rows(rows,hdr,L0){
+  const cols=hdr.i.map(t=>({n:T(t),x:t.x}));
+  for(const L of rows){const cells=cols.map(()=>[]);
+   L.i.forEach((t,k)=>{let b=0;for(let j=0;j<cols.length;j++)if(cols[j].x<=t.x+6)b=j;if(k==0)b=0;cells[b].push(T(t))});
+   L0.items.push({n:cells[0].join(' '),r:'',d:cells.map((c,j)=>j&&c.length?(cols[j].n.length<=3?cols[j].n:cols[j].n.charAt(0)+cols[j].n.slice(1).toLowerCase())+': '+c.join(' '):'').filter(Boolean).join(' · ')})}
+ }
+  function listPage(lines){
+  let mg=pmargin(lines,null),topY=null,seg=[],cur=lcur,hdrLine=null;
+  const flush=()=>{if(!cur||!seg.length){seg=[];return}const C=cur,m=(hdrLine?hdrLine.i[0].x:null)??mg??57;
+   if(C.f=='f1')f1(seg,m,C.L,topY);else if(C.f=='f3')f3(seg,m,C.L);seg=[]};
+  for(const L of lines){
+   const f=L.i[0],t0=T(f).toUpperCase(),s=lineTxt(L);
+   const h12=L.i.some(t=>t.h>11.8&&up(T(t))&&T(t).length>3);
+   if(h12){flush();cur=null;continue}
+   const th=!f.b&&f.h<=10.6&&up(T(f))&&TH[t0];
+   if(th&&L.i.every(t=>up(T(t))&&!t.b)){flush();const cfg=th;cur={f:cfg[0],L:getL(cfg)};hdrLine=L;topY=L.y;
+    if(cfg[0]=='f4'){const ix=lines.indexOf(L),rows=[];let k=ix+1;
+     for(;k<lines.length;k++){const R=lines[k],ss=lineTxt(R);if(!ss||pg(ss))continue;if(R.i.length<L.i.length||Math.abs(R.i[0].x-L.i[0].x)>8||R.i.every(t=>up(T(t))&&!t.b))break;rows.push(R)}
+     f4rows(rows,L,cur.L);rows.forEach(R=>R.__f4=true);cur=null}
+    continue}
+   if(L.__f4)continue;
+   if(cur)seg.push(L)}
+  flush();lcur=cur}
+ function finMag(){
+  if(!mgi)return;const L0=LS.magisemi||(LS.magisemi={t:'Magisemi (Floralista)',lab:'',items:[]}),it=mgi,rows=it.rows.slice().sort((a,b)=>b.y-a.y);
+  const bl=rows.map(r=>({l:r.l,ds:[]}));
+  for(const x of it.tx){let b=null,bd=1e9;rows.forEach((r,q)=>{const d=Math.abs(r.y-x.y);if(d<bd){bd=d;b=bl[q]}});if(b)b.ds.push(x)}
+  L0.items.push({n:cap(it.n),r:'',d:[it.fl.join(' ')].concat(bl.map(b=>'Sezioni '+b.l+': '+b.ds.sort((a,c)=>c.y-a.y).map(x=>x.s).join(' '))).filter(x=>x&&!/: $/.test(x)).join('\n')});mgi=null}
+ function magPage(lines){
+  const ti=L=>L.i.length==1&&L.i[0].h>11.8&&L.i[0].h<=12.6&&up(T(L.i[0]))&&T(L.i[0]).length>3&&!/^LISTA\b/.test(T(L.i[0]));
+  for(const L of lines){
+   const s=lineTxt(L);if(!s||L.y<48)continue;
+   if(/^LISTA\b/.test(s)){finMag();magOn=true;continue}
+   if(ti(L)){finMag();if(!magOn)continue;mgi={n:T(L.i[0]),fl:[],tx:[],rows:[],ex:null,seen:false};continue}
+   if(!mgi)continue;
+   if(L.i.every(t=>/^(T|EFFETTO)$/.test(T(t)))){const e=L.i.find(t=>T(t)=='EFFETTO');if(e){mgi.ex=e.x;mgi.seen=true}continue}
+   if(!mgi.seen){mgi.fl.push(s);continue}
+   const toks=[];for(const t of L.i){if(t.b&&/^\d(-\d)?$/.test(T(t))&&t.x<mgi.ex-8)mgi.rows.push({l:T(t),y:L.y});else toks.push(t)}
+   if(toks.length)mgi.tx.push({y:L.y,s:toks.map(T).join(' ')})}
+ }
  return{
   page(items){
    const big=items.filter(t=>t.h>12.6&&/^[A-ZÀ-Ú’' ]{2,}$/.test(t.str.trim())).sort((a,b)=>b.y-a.y||a.x-b.x).map(t=>t.str.trim()).join(' ');
-   if(big){mode=0;let m;
+   if(big){mode=0;let m;lcur=null;hdet=false;
     if(m=big.match(/^INCANTESIMI DA (.+)$/)){spC=cap(m[1].replace(/^(LA|LO|IL|L’) /,''));if(spC!='Png'){mode=2;sp[spC]=sp[spC]||[];spl=null}}
-    else if(/^ABILIT[ÀA] EROICHE$/.test(big)){mode=3;grp=0;tbl=false}
+    else if(/^(NUOVE )?ABILIT[ÀA] EROICHE\b/.test(big)){mode=3;grp=0;tbl=false;hdet=false;hent=null}
     else if(big=='GLI ARCANA'){mode=4;ar=null}
-    else if(big=='TIPI DI TECNOLOGIA')mode=6}
+    else if(big=='TIPI DI TECNOLOGIA')mode=6;
+    else for(const [re,md] of BIG)if(re.test(big)){mode=md;if(md==8)magOn=false;break}
+    if(mode!=8)finMag()}
    pY=null;
    const its=items.filter(t=>t.str.trim()&&t.h>=8.5&&t.h<=12.6).sort((a,b)=>b.y-a.y),lines=[];
    for(const t of its){const L=lines[lines.length-1];if(L&&Math.abs(L.y-t.y)<=3)L.i.push(t);else lines.push({y:t.y,i:[t]})}
+   lines.forEach(L=>L.i.sort((a,b)=>a.x-b.x));
+   if(mode==7){listPage(lines);return}
+   if(mode==8){magPage(lines);return}
    for(const L of lines){
-    L.i.sort((a,b)=>a.x-b.x);
-    const txt=L.i.map(t=>t.str.trim()).join(' ').replace(/\s+/g,' ').trim();
+    const txt=lineTxt(L);
     const am=txt.match(/^ABILIT[ÀA]\s+(?:DELL[’']\s*|DELLA\s+|DELLO\s+|DEL\s+|DEI\s+|DEGLI\s+)([A-ZÀ-Ú’' ]+)$/);
     if(am){cls=cap(am[1].trim());cat[cls]=cat[cls]||[];mode=1;sk=null;lastTitle=false;continue}
     if(mode==1&&/^(ANCHE\s*:|BENEFICI\s+GRATUITI|INCANTESIMI\s+DA|CAPITOLO\s+\d)/i.test(txt)){mode=0;continue}
@@ -131,17 +215,25 @@ function mkParser(){
       spl={n:c(0,120),pm:c(120,180),bs:c(180,285),dur:c(285,999),o:ic?1:0,d:''};sp[spC].push(spl)}
      else if(spl)spl.d+=(spl.d?' ':'')+txt;
      continue}
-    if(mode==3){
-     if(/^LISTA DI ABILIT/i.test(txt)){tbl=true;continue}
-     if(tbl&&/^[A-ZÀ-Ú’' ]{5,}$/.test(txt)){mode=0;continue}
-     if(!tbl||pg(txt))continue;
-     if(/^Abilit[àa] [Ee]roiche\b/.test(txt)){grp=/padronanza/i.test(txt)?2:1;pY=null;continue}
-     if(!grp)continue;
-     if(pY==null||pY-L.y>=14){hr={n:'',r:'',d:''};H.push(hr)}
-     pY=L.y;
-     for(const t of L.i){const f=t.x<128?'n':(grp==2&&t.x<225)?'r':'d';hr[f]+=(hr[f]?' ':'')+t.str.trim()}
-     continue}
     const hd=L.i.filter(t=>t.h>11.8&&up(t.str.trim())),ti=L.i.filter(t=>t.h>10.5&&t.h<=11.8&&up(t.str.trim()));
+    if(mode==3){
+     if(!hdet){
+      if(/^LISTA (DI|DELLE NUOVE) ABILIT/i.test(txt)){tbl=true;continue}
+      if(tbl&&ti.length&&/^[A-ZÀ-Ú’' !?]{4,}$/.test(txt)){hdet=true;hent={n:txt,r:'',d:''};HD.push(hent);hpy=L.y;hreq=false;hlt=true;continue}
+      if(!tbl||pg(txt))continue;
+      if(/^Abilit[àa] [Ee]roiche\b/.test(txt)){grp=/padronanza/i.test(txt)?2:1;pY=null;continue}
+      if(!grp)continue;
+      if(pY==null||pY-L.y>=14){hr={n:'',r:'',d:''};H.push(hr)}
+      pY=L.y;
+      for(const t of L.i){const f=t.x<128?'n':(grp==2&&t.x<225)?'r':'d';hr[f]+=(hr[f]?' ':'')+t.str.trim()}
+      continue}
+     if(pg(txt)||!txt)continue;
+     if(ti.length&&/^[A-ZÀ-Ú’' !?]{4,}$/.test(txt)){if(hlt&&hent&&!hent.d&&!hent.r&&hpy-L.y<=14){hent.n+=' '+txt}else{hent={n:txt,r:'',d:''};HD.push(hent)}hlt=true;hpy=L.y;hreq=false;continue}
+     const gap=hpy==null?0:hpy-L.y;
+     if(/^Requisiti\s*:/.test(txt)&&!hent.d&&!hent.r){hent.r=txt.replace(/^Requisiti\s*:\s*/,'');hreq=true}
+     else if(hreq&&gap<=14&&!hent.d)hent.r+=' '+txt;
+     else{hreq=false;hent.d+=(hent.d?((gap>16||/^•/.test(txt))?'\n':' '):'')+txt}
+     hlt=false;hpy=L.y;continue}
     if(hd.length){
      const h=hd.map(t=>t.str.trim()).join(' '),m=h.match(/^ABILIT[ÀA]\s+(?:DELL[’']\s*|DELLA\s+|DELLO\s+|DEL\s+|DEI\s+|DEGLI\s+)(.+)$/);
      if(m){cls=cap(m[1]);cat[cls]=cat[cls]||[];mode=1;sk=null}else mode=0;
@@ -157,43 +249,74 @@ function mkParser(){
     if(!sk||txt.length<2||/^\d{1,3}$/.test(txt)||/\s-\s\d{4,}$/.test(txt))continue;
     sk.d+=(sk.d?' ':'')+txt}
   },
-  result(){for(const k in cat)cat[k].forEach(s=>{s.n=cap(s.n).replace(/\./g,'');s.d=cl(s.d)});return cat},
-  extra(){const o={};for(const k in sp)if(sp[k].length)o[k]=sp[k].map(x=>({...x,d:cl(x.d)}));return{spells:o,heroic:H.filter(h=>h.n).map(h=>({n:h.n,r:h.r,d:cl(h.d)})),arcana:AR.map(h=>({...h,d:cl(h.d)})),infusioni:IN.filter(h=>h.n).map(h=>({...h,d:cl(h.d)}))}}}}
-
+  result(){finMag();for(const k in cat)cat[k].forEach(s=>{s.n=cap(s.n).replace(/\./g,'');s.d=cl(s.d)});return cat},
+  extra(){finMag();const o={};for(const k in sp)if(sp[k].length)o[k]=sp[k].map(x=>({...x,d:cl(x.d)}));
+   const tb=H.filter(h=>h.n),seen=new Set(),heroic=[];
+   for(const e of HD){const t=tb.find(h=>nk(h.n)==nk(e.n)),k=nk(e.n);if(seen.has(k)||!e.d)continue;seen.add(k);heroic.push({n:t?t.n:titleIt(e.n),r:cl(e.r)||(t?t.r:''),d:cl(e.d)})}
+   if(!heroic.length)tb.forEach(h=>heroic.push({n:h.n,r:h.r,d:cl(h.d)}));
+   const lists={};for(const k in LS){const it=LS[k].items.filter(x=>x.n&&(x.d||x.r)).map(x=>({n:x.n,r:cl(x.r||''),d:cl(x.d||'')}));if(it.length)lists[k]={t:LS[k].t,lab:LS[k].lab,items:it}}
+   return{spells:o,heroic,arcana:AR.map(h=>({...h,d:cl(h.d)})),infusioni:IN.filter(h=>h.n).map(h=>({...h,d:cl(h.d)})),lists}}}
+}
 const CK='fu-cat-v1';let CAT={};try{CAT=JSON.parse(localStorage.getItem(CK))||{}}catch(e){}
 let CAT2={};try{CAT2=JSON.parse(localStorage.getItem('fu-cat2-v1'))||{}}catch(e){}
 let spSel='';
 const spFind=n=>{for(const k in(CAT2.spells||{})){const s=CAT2.spells[k].find(x=>x.n.toLowerCase()==String(n||'').trim().toLowerCase());if(s)return s}return null};
 const hFind=n=>(CAT2.heroic||[]).find(x=>x.n.toLowerCase()==String(n||'').trim().toLowerCase());
 function spCard(){const sp=CAT2.spells||{},ks=Object.keys(sp);
- if(!ks.length)return `<div class="card"><h2>Dal manuale</h2><p class="mut">Nessun incantesimo o abilità eroica nel catalogo. In <b>Classi e Livelli</b> importa (o reimporta) il PDF del manuale per aggiungerli.</p></div>`;
+ if(!ks.length)return '';
  if(!sp[spSel])spSel=ks[0];const own=new Set(S.c.inc.map(x=>x.n.toLowerCase()));
- return `<div class="card"><h2>Incantesimi dal manuale</h2><select id="spc">${ks.map(k=>`<option ${k==spSel?'selected':''}>${esc(k)}</option>`).join('')}</select>${sp[spSel].map((s,j)=>{const o=own.has(s.n.toLowerCase());return `<div class="mw"><div class="row"><b class="wn" style="flex:1">${esc(s.n)}${s.o?' ⚔':''}</b><button class="${o?'o':''}" data-act="addsp" data-i="${j}" ${o?'disabled':''}>${o?'✓ Aggiunto':'+ Aggiungi'}</button></div><div class="hint">PM ${esc(s.pm)} · ${esc(s.bs)} · ${esc(s.dur)}</div><details><summary class="mut">Descrizione</summary><p>${nl(s.d)}</p></details></div>`}).join('')}</div>`}
-function hCard(){const H=CAT2.heroic||[];if(!H.length)return'';const c=S.c;c.eroiche=c.eroiche||[];const own=new Set(c.eroiche.map(x=>x.toLowerCase()));
- return `<div class="card"><h2>Abilità eroiche</h2>${H.map((h,j)=>{const o=own.has(h.n.toLowerCase());return `<div class="mw"><div class="row"><b class="wn" style="flex:1">${esc(h.n)}</b><button class="${o?'o':''}" data-act="${o?'delh':'addh'}" data-i="${j}">${o?'✓ Rimuovi':'+ Aggiungi'}</button></div>${h.r?`<div class="hint">Requisiti: ${esc(h.r)}</div>`:''}<p>${nl(h.d)}</p></div>`}).join('')}</div>`}
-function xCard(k,t,lab){const H=CAT2[k]||[];if(!H.length)return'';const c=S.c;c.sel=c.sel||{};const own=new Set((c.sel[k]||[]).map(x=>x.toLowerCase()));
- return `<div class="card"><h2>${t}</h2>${H.map((h,j)=>{const o=own.has(h.n.toLowerCase());return `<div class="mw"><div class="row"><b class="wn" style="flex:1">${esc(h.n)}</b><button class="${o?'o':''}" data-act="${o?'delx':'addx'}" data-k="${k}" data-i="${j}">${o?'✓ Rimuovi':'+ Aggiungi'}</button></div>${h.r?`<div class="hint">${lab}: ${esc(h.r)}</div>`:''}<details><summary class="mut">Descrizione</summary><p>${nl(h.d)}</p></details></div>`}).join('')}</div>`}
-async function importPdf(f){
+ return `<div class="card"><h2>Incantesimi dal manuale</h2><select id="spc">${ks.map(k=>`<option ${k==spSel?'selected':''}>${esc(k)}</option>`).join('')}</select>${sp[spSel].map((s,j)=>{const o=own.has(s.n.toLowerCase());return `<div class="mw" data-n="${esc(s.n.toLowerCase())}"${hid(s.n)}><div class="row"><b class="wn" style="flex:1">${esc(s.n)}${s.o?' ⚔':''}</b><button class="${o?'o':''}" data-act="addsp" data-i="${j}" ${o?'disabled':''}>${o?'✓ Aggiunto':'+ Aggiungi'}</button></div><div class="hint">PM ${esc(s.pm)} · ${esc(s.bs)} · ${esc(s.dur)}${s.s?' · '+esc(s.s):''}</div><details><summary class="mut">Descrizione</summary><p>${nl(s.d)}</p></details></div>`}).join('')}</div>`}
+let FLT='',lsSel='';
+const xs=k=>k=='heroic'?(CAT2.heroic||[]):k.startsWith('l:')?(((CAT2.lists||{})[k.slice(2)])||{items:[]}).items:(CAT2[k]||[]);
+const hid=n=>FLT&&!String(n).toLowerCase().includes(FLT)?' style="display:none"':'';
+const selOf=(c,k)=>k=='heroic'?(c.eroiche=c.eroiche||[]):((c.sel=c.sel||{}),(c.sel[k]=c.sel[k]||[]));
+const selT=k=>k=='arcana'?'Arcana':k=='infusioni'?'Infusioni':k=='heroic'?'Abilità eroiche':((((CAT2.lists||{})[k.replace(/^l:/,'')])||{}).t||k);
+function fltCard(){const any=Object.keys(CAT2.spells||{}).length||(CAT2.heroic||[]).length||(CAT2.arcana||[]).length||(CAT2.infusioni||[]).length||Object.keys(CAT2.lists||{}).length;
+ if(!any)return `<div class="card"><h2>Dal manuale</h2><p class="mut">Nessun incantesimo, abilità eroica o altra lista nel catalogo. In <b>Classi e Livelli</b> importa (o reimporta) i PDF dei manuali per aggiungerli.</p></div>`;
+ return `<div class="card"><h2>Catalogo dei manuali</h2><input id="flt" type="search" placeholder="Cerca per nome in tutte le liste…" value="${esc(FLT)}"></div>`}
+function xCard(k,t,lab){const H=xs(k);if(!H.length)return'';const c=S.c;const own=new Set(selOf(c,k).map(x=>x.toLowerCase()));
+ return `<div class="card"><h2>${esc(t)}</h2>${H.map((h,j)=>{const o=own.has(h.n.toLowerCase());return `<div class="mw" data-n="${esc(h.n.toLowerCase())}"${hid(h.n)}><div class="row"><b class="wn" style="flex:1">${esc(h.n)}</b><button class="${o?'o':''}" data-act="${o?'delx':'addx'}" data-k="${k}" data-i="${j}">${o?'✓ Rimuovi':'+ Aggiungi'}</button></div>${(h.r||h.s)?`<div class="hint">${h.r?esc(lab)+': '+esc(h.r):''}${h.r&&h.s?' · ':''}${h.s?esc(h.s):''}</div>`:''}<details><summary class="mut">Descrizione</summary><p>${nl(h.d)}</p></details></div>`}).join('')}</div>`}
+function lCard(){const L=CAT2.lists||{},ks=Object.keys(L);if(!ks.length)return'';if(!L[lsSel])lsSel=ks[0];
+ return `<div class="card"><h2>Altre liste dai manuali</h2><select id="lsc">${ks.map(k=>`<option value="${esc(k)}" ${k==lsSel?'selected':''}>${esc(L[k].t)}</option>`).join('')}</select></div>`+xCard('l:'+lsSel,L[lsSel].t,L[lsSel].lab||'Dettaglio')}
+const BR=/bold|black|heavy|semibold|demi/i;
+const srcOf=n=>/high/i.test(n)?'High Fantasy':/natural/i.test(n)?'Natural Fantasy':/techno/i.test(n)?'Techno Fantasy':/base/i.test(n)?'Manuale Base':n.replace(/\.pdf$/i,'').slice(0,24);
+const mrg=(a,b,s)=>{const m=new Map((a||[]).map(x=>[x.n.toLowerCase(),x]));for(const x of b){x.s=s;m.set(x.n.toLowerCase(),x)}return[...m.values()]};
+async function readPdf(f,st,idx,tot){
+ const pdf=await pdfjsLib.getDocument({data:new Uint8Array(await f.arrayBuffer()),fontExtraProperties:true}).promise,P=mkParser(),fonts={};let nb=0;
+ for(let n=1;n<=pdf.numPages;n++){if(st)st.textContent='File '+idx+' di '+tot+' · pagina '+n+' di '+pdf.numPages+'…';
+  const pg=await pdf.getPage(n),tc=await pg.getTextContent();
+  const need=[...new Set(tc.items.filter(t=>t.fontName&&!(t.fontName in fonts)).map(t=>t.fontName))];
+  if(need.length){try{await pg.getOperatorList()}catch(e){}
+   for(const id of need){let nm='';try{const o=pg.commonObjs.get(id);nm=(o&&(o.name||o.fallbackName))||''}catch(e){}fonts[id]=nm}}
+  P.page(tc.items.filter(t=>t.str!==undefined&&t.transform).map(t=>{const b=BR.test(fonts[t.fontName]||'');if(b)nb++;return{str:t.str,x:t.transform[4],y:t.transform[5],h:Math.hypot(t.transform[2],t.transform[3]),w:t.width||0,b}}))}
+ return{P,nb}}
+async function importPdf(files){
  if(typeof pdfjsLib==='undefined'){alert('Il lettore PDF è disponibile solo nell\'app installata (APK o WebApp), non in questa anteprima.');return}
- const st=document.getElementById('imps');
+ const st=document.getElementById('imps'),out=[];
  try{pdfjsLib.GlobalWorkerOptions.workerSrc='lib/pdf.worker.min.js';
-  const pdf=await pdfjsLib.getDocument({data:new Uint8Array(await f.arrayBuffer())}).promise,P=mkParser();
-  for(let n=1;n<=pdf.numPages;n++){if(st)st.textContent='Lettura pagina '+n+' di '+pdf.numPages+'…';
-   const tc=await(await pdf.getPage(n)).getTextContent();
-   P.page(tc.items.filter(t=>t.str!==undefined&&t.transform).map(t=>({str:t.str,x:t.transform[4],y:t.transform[5],h:Math.hypot(t.transform[2],t.transform[3]),w:t.width||0})))}
-  const r=P.result(),x=P.extra(),nsp=Object.values(x.spells).reduce((a,l)=>a+l.length,0),nc=Object.keys(r).filter(k=>r[k].length).length,ns=Object.values(r).reduce((a,l)=>a+l.length,0);
-  if(!nc&&!nsp&&!x.heroic.length){alert('Nessuna classe trovata. Controlla che sia un manuale di Fabula Ultima nel formato originale.');render();return}
-  if(nc){Object.assign(CAT,r);localStorage.setItem(CK,JSON.stringify(CAT))}
-  CAT2.spells=Object.assign(CAT2.spells||{},x.spells);if(x.heroic.length)CAT2.heroic=x.heroic;if(x.arcana.length)CAT2.arcana=x.arcana;if(x.infusioni.length)CAT2.infusioni=x.infusioni;CAT2.v=2;localStorage.setItem('fu-cat2-v1',JSON.stringify(CAT2));
-  alert('Importate '+nc+' classi ('+ns+' abilità), '+nsp+' incantesimi, '+x.heroic.length+' abilità eroiche, '+x.arcana.length+' Arcana e '+x.infusioni.length+' infusioni.')}
+  for(let i=0;i<files.length;i++){const f=files[i],s=srcOf(f.name);
+   try{const{P,nb}=await readPdf(f,st,i+1,files.length),r=P.result(),x=P.extra();
+    const nsp=Object.values(x.spells).reduce((a,l)=>a+l.length,0),nc=Object.keys(r).filter(k=>r[k].length).length,ns=Object.values(r).reduce((a,l)=>a+l.length,0),nl_=Object.values(x.lists).reduce((a,l)=>a+l.items.length,0);
+    if(!nc&&!nsp&&!x.heroic.length&&!nl_){out.push(f.name+': nessun contenuto riconosciuto (è un manuale di Fabula Ultima nel formato originale?)');continue}
+    if(nc){Object.assign(CAT,r);localStorage.setItem(CK,JSON.stringify(CAT))}
+    CAT2.spells=CAT2.spells||{};for(const k in x.spells)CAT2.spells[k]=mrg(CAT2.spells[k],x.spells[k],s);
+    if(x.heroic.length)CAT2.heroic=mrg(CAT2.heroic,x.heroic,s);
+    if(x.arcana.length)CAT2.arcana=mrg(CAT2.arcana,x.arcana,s);
+    if(x.infusioni.length)CAT2.infusioni=mrg(CAT2.infusioni,x.infusioni,s);
+    CAT2.lists=CAT2.lists||{};for(const k in x.lists){const o=CAT2.lists[k];CAT2.lists[k]={t:x.lists[k].t,lab:x.lists[k].lab,items:mrg(o&&o.items,x.lists[k].items,s)}}
+    CAT2.v=3;localStorage.setItem('fu-cat2-v1',JSON.stringify(CAT2));
+    out.push(s+': '+nc+' classi ('+ns+' abilità), '+nsp+' incantesimi, '+x.heroic.length+' abilità eroiche, '+x.arcana.length+' Arcana, '+x.infusioni.length+' infusioni, '+nl_+' voci di liste'+(nb?'':' — ATTENZIONE: grassetto non rilevato, alcune liste potrebbero mancare'))}
+   catch(e){out.push(f.name+': errore nella lettura ('+(e&&e.message||e)+')')}}
+  alert(out.join('\n'))}
  catch(x){alert('Errore nella lettura del PDF: '+(x&&x.message||x))}
  render()}
 const catOf=n=>{const k=Object.keys(CAT).find(x=>x.toLowerCase()==String(n||'').trim().toLowerCase());return k?CAT[k]:null};
 function clsSel(i,it){return `<div><label>Classe</label><select data-p="c.classi.${i}.n" data-rc><option value=""></option>${[...new Set([...Object.keys(CAT),it.n].filter(Boolean))].map(x=>`<option ${x==it.n?'selected':''}>${esc(x)}</option>`).join('')}</select></div>`}
 function skHtml(i){const cl=S.c.classi[i],L=catOf(cl.n);if(!L)return'';cl.sk=cl.sk||{};const own=L.filter(s=>cl.sk[s.n]>0).length;
  return `<details style="margin-top:8px"><summary>Abilità dal manuale (${own} acquisite)</summary>${L.map(s=>`<div class="mw"><div class="row"><b style="flex:1">${esc(s.n)}</b><label>LA <input type="number" min="0" max="${s.max}" style="width:64px" data-p="c.classi.${i}.sk.${esc(s.n)}" value="${cl.sk[s.n]||0}"> / ${s.max}</label></div><details><summary class="mut">Descrizione</summary><p>${nl(s.d)}</p></details></div>`).join('')}</details>`}
-function catCard(){const k=Object.keys(CAT),n=k.reduce((a,x)=>a+CAT[x].length,0);return `<div class="card"><h2>Manuali</h2><p class="mut">Importa il PDF del tuo manuale: le abilità di classe vengono lette sul dispositivo e restano salvate solo qui, senza essere condivise.</p><div class="row"><input type="file" id="pdf" accept="application/pdf" style="max-width:260px"><button class="x" data-act="clrcat">Cancella catalogo</button></div><div class="hint" id="imps">${n?k.length+' classi, '+n+' abilità nel catalogo':'Catalogo vuoto'}${(CAT2.spells&&Object.keys(CAT2.spells).length)?' · '+Object.values(CAT2.spells).reduce((a,l)=>a+l.length,0)+' incantesimi, '+(CAT2.heroic||[]).length+' abilità eroiche':''}</div>${n&&CAT2.v!=2?'<p class="crisi">Catalogo già presente: reimporta il PDF una volta per aggiungere le novità (incantesimi, abilità eroiche, Arcana e infusioni).</p>':''}</div>`}
-document.addEventListener('change',e=>{if(e.target.id=='spc'){spSel=e.target.value;render();return}if(e.target.id=='pdf'&&e.target.files[0])importPdf(e.target.files[0])});
+function catCard(){const k=Object.keys(CAT),n=k.reduce((a,x)=>a+CAT[x].length,0),nsp=Object.values(CAT2.spells||{}).reduce((a,l)=>a+l.length,0),nl_=Object.values(CAT2.lists||{}).reduce((a,l)=>a+l.items.length,0);return `<div class="card"><h2>Manuali</h2><p class="mut">Importa i PDF dei tuoi manuali (Base e Atlanti, anche più file insieme): vengono letti sul dispositivo e restano salvati solo qui, senza essere condivisi. Più manuali si sommano nello stesso catalogo.</p><div class="row"><input type="file" id="pdf" accept="application/pdf" multiple style="max-width:260px"><button class="x" data-act="clrcat">Cancella catalogo</button></div><div class="hint" id="imps">${n?k.length+' classi, '+n+' abilità nel catalogo':'Catalogo vuoto'}${(nsp||(CAT2.heroic||[]).length||nl_)?' · '+nsp+' incantesimi, '+(CAT2.heroic||[]).length+' abilità eroiche, '+(CAT2.arcana||[]).length+' Arcana, '+(CAT2.infusioni||[]).length+' infusioni, '+nl_+' voci di liste':''}</div>${n&&CAT2.v!=3?'<p class="crisi">Catalogo di una versione precedente: reimporta i PDF una volta per aggiungere le novità (Atlanti, liste specifiche, abilità eroiche complete).</p>':''}</div>`}
+document.addEventListener('change',e=>{if(e.target.id=='spc'){spSel=e.target.value;render();return}if(e.target.id=='lsc'){lsSel=e.target.value;render();return}if(e.target.id=='pdf'&&e.target.files.length)importPdf([...e.target.files])});
+document.addEventListener('input',e=>{if(e.target.id=='flt'){FLT=e.target.value.trim().toLowerCase();document.querySelectorAll('.mw[data-n]').forEach(r=>{r.style.display=!FLT||r.dataset.n.includes(FLT)?'':'none'})}});
 function listHtml(k){const L=LISTS[k];return `<div class="card"><h2>${L.t}</h2>`+S.c[k].map((it,i)=>`<div class="item"><div class="g2">${L.f.map(([p,l,t])=>k=='classi'&&p=='n'&&Object.keys(CAT).length?clsSel(i,it):t=='area'?T(`c.${k}.${i}.${p}`,l):I(`c.${k}.${i}.${p}`,l,t)).join('')}</div>${k=='classi'?skHtml(i):''}${k=='inc'&&!it.d&&spFind(it.n)?`<details><summary class="mut">Descrizione dal manuale</summary><p>${nl(spFind(it.n).d)}</p></details>`:''}<button class="x" data-act="del" data-k="${k}" data-i="${i}">Rimuovi</button></div>`).join('')+`<button class="o" data-act="add" data-k="${k}">+ Aggiungi</button></div>`}
 const SECS=[
 ()=>`<div class="card"><h2>Personaggio</h2><div class="g">${I('c.nome','Nome')}${I('c.pron','Pronomi')}</div></div><div class="card"><h2>Tratti</h2><div class="g">${I('c.ident','Identità')}${I('c.tema','Tema')}${I('c.orig','Origine')}</div></div><div class="card"><h2>Legami</h2>${S.c.bonds.map((b,i)=>`<div class="item"><div class="g2">${I(`c.bonds.${i}.n`,'Nome del legame')}${EM.map((e,j)=>`<div><label>${e[0]} / ${e[1]}</label><select data-p="c.bonds.${i}.e.${j}" data-n><option value="0" ${b.e[j]==0?'selected':''}>—</option><option value="1" ${b.e[j]==1?'selected':''}>${e[0]}</option><option value="2" ${b.e[j]==2?'selected':''}>${e[1]}</option></select></div>`).join('')}<div><label>Forza</label><div class="big" id="bf${i}"></div></div></div></div>`).join('')}</div>`,
@@ -202,7 +325,7 @@ const SECS=[
 ()=>`<div class="card"><h2>Attributi</h2><div class="g">${ATT.map(([k,n])=>`<div class="stat"><label>${n}</label><div class="row" style="justify-content:center"><div><div class="hint">Base</div><select data-p="c.a.${k}.b" data-n data-rc>${dieOpt(S.c.a[k].b)}</select></div><div><div class="hint">Attuale</div><select data-p="c.a.${k}.c" data-n>${dieOpt(S.c.a[k].c)}</select></div></div></div>`).join('')}</div></div><div class="card"><h2>Effetti di Stato</h2><p class="mut">Attivando uno stato l'attributo corrispondente scende di una taglia; puoi comunque correggere a mano il dado attuale.</p>${ST.map(([k,n])=>`<label class="pill"><input type="checkbox" data-p="c.st.${k}" data-rc ${S.c.st[k]?'checked':''}> ${n}</label>`).join('')}</div>`,
 ()=>`<div class="card"><h2>Punti Ferita · Mente · Inventario</h2><div class="g">${res('pf','Punti Ferita')}${res('pm','Punti Mente')}${res('pi','Punti Inventario')}</div></div>`,
 ()=>`<div class="card"><h2>Livello</h2><div class="g">${I('c.liv','Livello personaggio','number')}${I('c.px','Punti Esperienza','number')}</div></div>${catCard()}${listHtml('classi')}`,
-()=>`${spCard()}${hCard()}${xCard('arcana','Arcana (Arcanista)','Domini')}${xCard('infusioni','Infusioni (Artefice)','Livello')}${listHtml('inc')}<div class="card"><h2>Obiettivi e note</h2><div class="g2">${T('c.obj','Obiettivi e ideali')}${T('c.note','Note')}</div></div><div class="card"><button class="x" data-act="reset">Azzera questa scheda</button></div>`];
+()=>`${fltCard()}${spCard()}${xCard('heroic','Abilità eroiche','Requisiti')}${xCard('arcana','Arcana (Arcanista)','Domini')}${xCard('infusioni','Infusioni (Artefice)','Livello')}${lCard()}${listHtml('inc')}<div class="card"><h2>Obiettivi e note</h2><div class="g2">${T('c.obj','Obiettivi e ideali')}${T('c.note','Note')}</div></div><div class="card"><button class="x" data-act="reset">Azzera questa scheda</button></div>`];
 function arc(i,n){const p=a=>[100+90*Math.cos(a),100+90*Math.sin(a)],a0=-Math.PI/2+2*Math.PI*i/n,a1=-Math.PI/2+2*Math.PI*(i+1)/n,[x,y]=p(a0),[u,v]=p(a1);return `M100 100L${x} ${y}A90 90 0 0 1 ${u} ${v}Z`}
 function clocks(){return `<div class="card"><div class="row"><button data-act="newclock">+ Nuovo clock</button><span class="mut">Tocca uno spicchio per riempire fino a lì; toccalo di nuovo per svuotarlo. I clock sono condivisi da tutti i personaggi.</span></div></div><div class="clocks">`+S.clocks.map((k,i)=>{
  let sv='';for(let j=0;j<k.n;j++){const a=-Math.PI/2+2*Math.PI*(j+.5)/k.n;sv+=`<path d="${arc(j,k.n)}" fill="${j<k.filled?k.col:'var(--empty)'}" stroke="var(--ink)" stroke-width="2" data-act="seg" data-i="${i}" data-j="${j}"/><text x="${100+60*Math.cos(a)}" y="${100+60*Math.sin(a)+4}" text-anchor="middle" font-size="11" fill="var(--ink)" pointer-events="none">${j+1}</text>`}
@@ -222,7 +345,7 @@ function riep(){const c=S.c,box=(l,v,i)=>`<div class="mb"><span>${l}</span><b>${
  ${st.length?`<p><b>Stati:</b> ${st.join(', ')}</p>`:''}
  <h3>Difese</h3><div class="mg">${box('Difesa',c.dif)}${box('Difesa Magica',c.mdif)}${box('Iniziativa',c.ini>0?'+'+c.ini:c.ini)}</div>
  <h3>Armi</h3>${arm.map(w=>`<div class="mw"><b class="wn">${esc(w.n)}</b> ${w.pr?'【'+esc(w.pr)+'】 ':''}${w.d?'【'+esc(w.d)+'】 ':''}${esc([w.t,w.m].filter(Boolean).join(', '))}${w.q?`<div><i>${esc(w.q)}</i></div>`:''}${w.desc?`<p>${nl(w.desc)}</p>`:''}</div>`).join('')||'<p class="mut">Nessuna arma.</p>'}
- ${(()=>{const o=[];c.classi.forEach(x=>{const L=catOf(x.n);if(L&&x.sk)L.forEach(s=>{if(x.sk[s.n]>0)o.push([x.n,s,x.sk[s.n]])})});return o.length?'<h3>Abilità di classe</h3>'+o.map(([n,s,v])=>`<div class="mw"><b class="wn">${esc(s.n)}</b> (${esc(n)}) · LA ${v}/${s.max}<p>${nl(s.d)}</p></div>`).join(''):''})()}${(S.c.eroiche||[]).length?'<h3>Abilità eroiche</h3>'+S.c.eroiche.map(n=>{const h=hFind(n)||{};return `<div class="mw"><b class="wn">${esc(n)}</b>${h.r?' · '+esc(h.r):''}${h.d?`<p>${nl(h.d)}</p>`:''}</div>`}).join(''):''}${[['arcana','Arcana'],['infusioni','Infusioni']].map(([k,t])=>{const L=(S.c.sel||{})[k]||[];return L.length?`<h3>${t}</h3>`+L.map(n=>{const h=(CAT2[k]||[]).find(x=>x.n==n)||{};return `<div class="mw"><b class="wn">${esc(n)}</b>${h.r?' · '+esc(h.r):''}${h.d?`<p>${nl(h.d)}</p>`:''}</div>`}).join(''):''}).join('')}<h3>Abilità e incantesimi</h3>${ab.map(w=>`<div class="mw"><b class="wn">${esc(w.n)}</b> ${w.pm?'【'+esc(w.pm)+' PM】 ':''}${esc([w.bs,w.dur].filter(Boolean).join(' · '))}${(w.d||(spFind(w.n)||{}).d)?`<p>${nl(w.d||spFind(w.n).d)}</p>`:''}</div>`).join('')||'<p class="mut">Nessuna abilità.</p>'}
+ ${(()=>{const o=[];c.classi.forEach(x=>{const L=catOf(x.n);if(L&&x.sk)L.forEach(s=>{if(x.sk[s.n]>0)o.push([x.n,s,x.sk[s.n]])})});return o.length?'<h3>Abilità di classe</h3>'+o.map(([n,s,v])=>`<div class="mw"><b class="wn">${esc(s.n)}</b> (${esc(n)}) · LA ${v}/${s.max}<p>${nl(s.d)}</p></div>`).join(''):''})()}${(S.c.eroiche||[]).length?'<h3>Abilità eroiche</h3>'+S.c.eroiche.map(n=>{const h=hFind(n)||{};return `<div class="mw"><b class="wn">${esc(n)}</b>${h.r?' · '+esc(h.r):''}${h.d?`<p>${nl(h.d)}</p>`:''}</div>`}).join(''):''}${Object.keys(S.c.sel||{}).map(k=>{const L=S.c.sel[k]||[],t=selT(k);return L.length?`<h3>${t}</h3>`+L.map(n=>{const h=xs(k).find(x=>x.n==n)||{};return `<div class="mw"><b class="wn">${esc(n)}</b>${h.r?' · '+esc(h.r):''}${h.d?`<p>${nl(h.d)}</p>`:''}</div>`}).join(''):''}).join('')}<h3>Abilità e incantesimi</h3>${ab.map(w=>`<div class="mw"><b class="wn">${esc(w.n)}</b> ${w.pm?'【'+esc(w.pm)+' PM】 ':''}${esc([w.bs,w.dur].filter(Boolean).join(' · '))}${(w.d||(spFind(w.n)||{}).d)?`<p>${nl(w.d||spFind(w.n).d)}</p>`:''}</div>`).join('')||'<p class="mut">Nessuna abilità.</p>'}
  ${cl.some(x=>x.b)?'<h3>Benefici di classe</h3>'+cl.filter(x=>x.b).map(x=>`<div class="mw"><b class="wn">${esc(x.n)}</b> (liv. ${x.l})<p>${nl(x.b)}</p></div>`).join(''):''}</div>`}
 function doImport(rep){const el=document.getElementById('bk');try{const j=JSON.parse(el.value.trim());if(!j||!Array.isArray(j.chars))throw 0;
  const ch=j.chars.map(c=>Object.assign(JSON.parse(JSON.stringify(def().c)),c));
@@ -262,10 +385,8 @@ document.addEventListener('click',e=>{const t=e.target.closest('[data-act]');if(
  else if(a=='cfill')k.filled=Math.min(k.n,Math.max(0,k.filled+d));
  else if(a=='csec'){k.n=Math.min(12,Math.max(2,k.n+d));while(k.lab.length<k.n)k.lab.push('');k.lab.length=k.n;k.filled=Math.min(k.filled,k.n)}
  else if(a=='addsp'){const s=CAT2.spells[spSel][i];S.c.inc.push({n:s.n,pm:s.pm,bs:s.bs,dur:s.dur,d:''})}
- else if(a=='addx'){const k=t.dataset.k;S.c.sel=S.c.sel||{};(S.c.sel[k]=S.c.sel[k]||[]).push(CAT2[k][i].n)}
- else if(a=='delx'){const k=t.dataset.k,n=CAT2[k][i].n;S.c.sel[k]=(S.c.sel[k]||[]).filter(x=>x!=n)}
- else if(a=='addh'){S.c.eroiche=S.c.eroiche||[];S.c.eroiche.push(CAT2.heroic[i].n)}
- else if(a=='delh'){const n=CAT2.heroic[i].n;S.c.eroiche=(S.c.eroiche||[]).filter(x=>x!=n)}
+ else if(a=='addx'){const k=t.dataset.k;selOf(S.c,k).push(xs(k)[i].n)}
+ else if(a=='delx'){const k=t.dataset.k,n=xs(k)[i].n,L=selOf(S.c,k),j=L.indexOf(n);if(j>=0)L.splice(j,1)}
  else if(a=='clrcat'){if(confirm('Cancellare il catalogo importato?')){CAT={};CAT2={};localStorage.removeItem(CK);localStorage.removeItem('fu-cat2-v1')}else return}
  else if(a=='reset'){if(confirm('Azzerare questa scheda?')){S.chars[S.cur]=def().c;S.c=S.chars[S.cur]}else return}
  render()});
