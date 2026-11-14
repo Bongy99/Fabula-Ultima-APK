@@ -1,6 +1,6 @@
 // Service worker: l'app funziona anche offline.
 // Per forzare l'aggiornamento della cache cambia il numero di versione.
-const CACHE = 'fabula-ultima-v1';
+const CACHE = 'fabula-ultima-v2';
 const FILES = ['./', 'index.html', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
