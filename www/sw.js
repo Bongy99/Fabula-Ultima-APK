@@ -1,29 +1,26 @@
-// Service worker: l'app funziona anche offline.
+// Service worker: rende l'app utilizzabile completamente offline.
 // Per forzare l'aggiornamento della cache cambia il numero di versione.
-const CACHE = 'fabula-ultima-v7';
-const FILES = ['./', 'index.html', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
-
+const CACHE = 'fabula-ultima-v8';
+const ASSETS = [
+  './', 'index.html', 'manifest.webmanifest',
+  'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png',
+  'lib/pdf.min.js', 'lib/pdf.worker.min.js'
+];
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(CACHE).then(c => Promise.all(ASSETS.map(a => c.add(a).catch(() => {})))).then(() => self.skipWaiting()));
 });
-
 self.addEventListener('activate', e => {
-  e.waitUntil(
-    caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
-      .then(() => self.clients.claim())
-  );
+  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
 });
-
-// Risponde subito dalla cache e aggiorna in background.
 self.addEventListener('fetch', e => {
-  if (e.request.method !== 'GET') return;
+  const r = e.request;
+  if (r.method !== 'GET' || new URL(r.url).origin !== location.origin) return;
   e.respondWith(
-    caches.match(e.request).then(hit => {
-      const net = fetch(e.request).then(r => {
-        if (r && r.ok) { const copy = r.clone(); caches.open(CACHE).then(c => c.put(e.request, copy)); }
-        return r;
-      }).catch(() => hit);
+    caches.match(r, { ignoreSearch: true }).then(hit => {
+      const net = fetch(r).then(res => {
+        if (res && res.ok) { const cp = res.clone(); caches.open(CACHE).then(c => c.put(r, cp)); }
+        return res;
+      }).catch(() => hit || (r.mode === 'navigate' ? caches.match('index.html') : undefined));
       return hit || net;
     })
   );
