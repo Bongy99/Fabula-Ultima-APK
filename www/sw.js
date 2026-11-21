@@ -1,6 +1,6 @@
 // Service worker: rende l'app utilizzabile completamente offline.
 // Per forzare l'aggiornamento della cache cambia il numero di versione.
-const CACHE = 'fabula-ultima-v8';
+const CACHE = 'fabula-ultima-v9';
 const ASSETS = [
   './', 'index.html', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png',
